@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/Amazon_interview_Q_gen/static/css/main.ec7b913a.css",
-    "main.js": "/Amazon_interview_Q_gen/static/js/main.e47ce8ea.js",
+    "main.js": "/Amazon_interview_Q_gen/static/js/main.6a596ba7.js",
     "static/js/453.657dfc91.chunk.js": "/Amazon_interview_Q_gen/static/js/453.657dfc91.chunk.js",
     "index.html": "/Amazon_interview_Q_gen/index.html",
     "main.ec7b913a.css.map": "/Amazon_interview_Q_gen/static/css/main.ec7b913a.css.map",
-    "main.e47ce8ea.js.map": "/Amazon_interview_Q_gen/static/js/main.e47ce8ea.js.map",
+    "main.6a596ba7.js.map": "/Amazon_interview_Q_gen/static/js/main.6a596ba7.js.map",
     "453.657dfc91.chunk.js.map": "/Amazon_interview_Q_gen/static/js/453.657dfc91.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.ec7b913a.css",
-    "static/js/main.e47ce8ea.js"
+    "static/js/main.6a596ba7.js"
   ]
 }

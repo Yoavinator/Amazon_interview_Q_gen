@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/Amazon_interview_Q_gen/static/css/main.769d1170.css",
-    "main.js": "/Amazon_interview_Q_gen/static/js/main.81b0c9b0.js",
+    "main.css": "/Amazon_interview_Q_gen/static/css/main.ec7b913a.css",
+    "main.js": "/Amazon_interview_Q_gen/static/js/main.0aa6effc.js",
     "static/js/453.657dfc91.chunk.js": "/Amazon_interview_Q_gen/static/js/453.657dfc91.chunk.js",
     "index.html": "/Amazon_interview_Q_gen/index.html",
-    "main.769d1170.css.map": "/Amazon_interview_Q_gen/static/css/main.769d1170.css.map",
-    "main.81b0c9b0.js.map": "/Amazon_interview_Q_gen/static/js/main.81b0c9b0.js.map",
+    "main.ec7b913a.css.map": "/Amazon_interview_Q_gen/static/css/main.ec7b913a.css.map",
+    "main.0aa6effc.js.map": "/Amazon_interview_Q_gen/static/js/main.0aa6effc.js.map",
     "453.657dfc91.chunk.js.map": "/Amazon_interview_Q_gen/static/js/453.657dfc91.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.769d1170.css",
-    "static/js/main.81b0c9b0.js"
+    "static/css/main.ec7b913a.css",
+    "static/js/main.0aa6effc.js"
   ]
 }

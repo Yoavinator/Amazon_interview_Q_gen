@@ -1,0 +1,7 @@
+/* Reset any default styles */
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Remove everything else */

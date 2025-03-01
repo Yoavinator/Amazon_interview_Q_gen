@@ -148,7 +148,7 @@ app.post('/api/feedback', async (req, res) => {
       });
     }
     
-    // Prepare prompt for ChatGPT - enhanced for Amazon PM interviews
+    // Update the prompt to generate the structured report format
     let prompt;
     
     if (feedbackType === 'amazon_pm') {
@@ -156,57 +156,68 @@ app.post('/api/feedback', async (req, res) => {
       
       Candidate's answer: "${transcription}"
       
-      Provide detailed feedback using these frameworks:
+      Please return a structured report in exactly this format (use proper markdown):
+
+      ## 📊 Overall Score
+      **Score:** X/10
+      **Question Category:** [Leadership Principle or PM skill the question is testing]
+      **Response Summary:** [2-3 word summary of candidate's performance]
+
+      ## 📌 STAR Method Analysis
+      **Situation:** [Did the candidate clearly establish context? Provide brief analysis]
+      **Task:** [Was their role/responsibility clearly articulated? Provide brief analysis]
+      **Action:** [Did they explain their specific actions with enough detail? Provide brief analysis]
+      **Result:** [Did they quantify impact and outcomes? Provide brief analysis]
+
+      ## 🏆 Amazon Leadership Principles Assessment
+      [Evaluate how well the answer demonstrated relevant Amazon Leadership Principles]
+      - **Customer Obsession:** [Assessment]
+      - **Ownership:** [Assessment]
+      - **Invent and Simplify:** [Assessment]
+      - Include only the principles that were relevant to this answer
+
+      ## 🧠 PM-Specific Skills Assessment
+      - **Product Sense:** [Assessment]
+      - **Strategic Thinking:** [Assessment]
+      - **Data-Driven Decision Making:** [Assessment]
+      - **Cross-Functional Collaboration:** [Assessment]
+
+      ## 🚀 Improvement Suggestions
+      [Provide 3-4 specific ways the candidate could strengthen their answer]
+      1. [First suggestion]
+      2. [Second suggestion]
+      3. [Third suggestion]
+
+      ## ⚡ Summary & Key Takeaways
+      [Brief summary of the candidate's performance, highlighting strengths and listing 2-3 actionable improvements]
       
-      1. STAR Method Analysis:
-         - Situation: Did the candidate clearly establish the context?
-         - Task: Was their role/responsibility clearly articulated?
-         - Action: Did they explain their specific actions with enough detail?
-         - Result: Did they quantify the impact and outcomes?
-      
-      2. Amazon Leadership Principles Assessment:
-         Evaluate how well the answer demonstrated relevant Amazon Leadership Principles, such as:
-         - Customer Obsession
-         - Ownership
-         - Invent and Simplify
-         - Are Right, A Lot
-         - Learn and Be Curious
-         - Hire and Develop the Best
-         - Insist on the Highest Standards
-         - Think Big
-         - Bias for Action
-         - Frugality
-         - Earn Trust
-         - Dive Deep
-         - Have Backbone; Disagree and Commit
-         - Deliver Results
-      
-      3. PM-Specific Skills:
-         - Product sense
-         - Strategic thinking
-         - Data-driven decision making
-         - Cross-functional collaboration
-      
-      4. Improvement Suggestions:
-         Provide 3-4 specific ways the candidate could strengthen their answer.
-      
-      5. Overall Rating:
-         Score the answer out of 10 and provide a brief summary.
-      
-      Format your response with markdown.`;
+      Be direct, specific, and actionable in your feedback. Do not be overly positive if the response does not warrant it.`;
     } else {
-      // Standard prompt for other interview types
+      // Standard prompt for other interview types (you can also update this if desired)
       prompt = `As an Amazon interview coach, evaluate the following candidate's answer to this question: "${question}".
       
       Candidate's answer: "${transcription}"
       
-      Provide feedback in these areas:
-      1. How well the candidate answered the question
-      2. Structure and clarity
-      3. Specific improvements
-      4. Overall rating out of 10
+      Please return a structured report in exactly this format (use proper markdown):
+
+      ## 📊 Overall Score
+      **Score:** X/10
+      **Question Category:** [Category]
+      **Response Summary:** [2-3 word summary]
+
+      ## 📌 Answer Structure Analysis
+      [Analysis of the answer structure and completeness]
+
+      ## 🚀 Improvement Suggestions
+      [Provide 3-4 specific ways the candidate could strengthen their answer]
+      1. [First suggestion]
+      2. [Second suggestion]
+      3. [Third suggestion]
+
+      ## ⚡ Summary & Key Takeaways
+      [Brief summary with actionable improvements]
       
-      Format your response with markdown.`;
+      Be direct, specific, and actionable in your feedback.`;
     }
     
     // Calculate token estimate for GPT-4 (approximate)

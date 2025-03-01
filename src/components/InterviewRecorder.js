@@ -34,82 +34,258 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
     };
   }, []);
 
+  // Enhanced startRecording function with mobile fixes
   const startRecording = async () => {
     try {
-      // Reset states
-      setError('');
-      setAudioUrl(null);
-      setTranscription('');
-      setFeedback('');
-      chunksRef.current = [];
+      // First, clear any previous state
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
       
-      console.log("Starting recording...");
+      // Check if we're on mobile Chrome
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
+      const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
       
-      // Get user media
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log(`Device detection: Mobile: ${isMobile}, Chrome: ${isChrome}, Safari: ${isSafari}`);
+      
+      // Different audio constraints for mobile Chrome
+      let audioConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      };
+      
+      // Some older versions of Chrome mobile need simpler constraints
+      if (isMobile && isChrome) {
+        console.log("Using simplified audio constraints for mobile Chrome");
+        audioConstraints = true; // Just use simple constraints for mobile Chrome
+      }
+      
+      // Request microphone access with appropriate constraints
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
       streamRef.current = stream;
       
-      // Create media recorder
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
+      // Log audio tracks to help with debugging
+      const audioTracks = stream.getAudioTracks();
+      console.log(`Got ${audioTracks.length} audio tracks`);
+      audioTracks.forEach((track, i) => {
+        console.log(`Track ${i}: ${track.label}, enabled: ${track.enabled}`);
+      });
       
-      // Set up recording timer
-      setRecordingTime(0);
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
+      // Try different MIME types for better mobile compatibility
+      let options = {};
+      const mimeTypes = [
+        'audio/webm',
+        'audio/webm;codecs=opus',
+        'audio/mp4',
+        'audio/ogg',
+        'audio/ogg;codecs=opus',
+        ''  // empty string means browser default
+      ];
       
-      // Handle data available event
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
+      // Find the first supported MIME type
+      for (let type of mimeTypes) {
+        if (!type || MediaRecorder.isTypeSupported(type)) {
+          options = type ? { mimeType: type } : {};
+          console.log(`Using MIME type: ${type || 'browser default'}`);
+          break;
         }
-      };
+      }
       
-      // Handle recording stop
-      mediaRecorder.onstop = async () => {
-        console.log("Recording stopped, processing audio...");
-        
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-        
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
-        }
-        
-        // Create audio blob and URL
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-        
-        // Log blob size
-        console.log(`Audio blob created: ${(audioBlob.size / 1024).toFixed(2)} KB`);
-        
-        // Send for transcription
-        await transcribeAudio(audioBlob);
-      };
+      try {
+        mediaRecorderRef.current = new MediaRecorder(stream, options);
+        console.log(`MediaRecorder initialized with state: ${mediaRecorderRef.current.state}`);
+      } catch (e) {
+        console.error('MediaRecorder initialization failed:', e);
+        // Absolute fallback - no options
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        console.log('Fallback MediaRecorder initialized');
+      }
       
-      // Start recording
-      mediaRecorder.start();
+      // Add more detailed event listeners for debugging
+      mediaRecorderRef.current.addEventListener('start', () => {
+        console.log('MediaRecorder started');
+      });
+      
+      mediaRecorderRef.current.addEventListener('pause', () => {
+        console.log('MediaRecorder paused');
+      });
+      
+      mediaRecorderRef.current.addEventListener('resume', () => {
+        console.log('MediaRecorder resumed');
+      });
+      
+      mediaRecorderRef.current.addEventListener('stop', () => {
+        console.log('MediaRecorder stopped');
+      });
+      
+      mediaRecorderRef.current.addEventListener('dataavailable', (e) => {
+        console.log(`Data available: ${e.data.size} bytes`);
+        handleDataAvailable(e);
+      });
+      
+      mediaRecorderRef.current.addEventListener('error', (e) => {
+        console.error('MediaRecorder error:', e);
+        setError(`Recording error: ${e.message || 'Unknown error'}`);
+        stopRecording();
+      });
+      
+      // Clear chunks before starting
+      chunksRef.current = [];
+      
+      // Start recording with a short slice interval to ensure data is captured
+      // This helps on some mobile browsers
+      mediaRecorderRef.current.start(1000); // Get data every second
       setIsRecording(true);
-      console.log("Recording started!");
+      
+      // Start timer
+      startTimer();
+      
+      setError(''); // Clear any previous errors
       
     } catch (err) {
-      console.error("Error starting recording:", err);
-      setError(`Failed to start recording: ${err.message}`);
-      setIsRecording(false);
-      if (timerRef.current) clearInterval(timerRef.current);
+      console.error('Error accessing microphone:', err);
+      
+      // Check if this is an HTTPS issue
+      if (window.location.protocol !== 'https:') {
+        setError('Microphone access requires HTTPS. Please use a secure connection.');
+        return;
+      }
+      
+      // More detailed error messages
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setError('Microphone access denied. Please check your browser settings and permissions. For Chrome mobile, go to Settings > Site Settings > Microphone.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setError('No microphone found. Please check that your device has a working microphone.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setError('Could not start audio recording. Try closing other apps that might be using the microphone, or reload the page.');
+      } else if (err.name === 'OverconstrainedError') {
+        setError('Audio constraints issue. Trying again with simpler settings might help.');
+      } else if (err.name === 'TypeError' && err.message.includes('getUserMedia')) {
+        setError('Your browser may not support audio recording. Please try using Chrome or Firefox on desktop.');
+      } else {
+        setError(`Microphone error (${err.name}): ${err.message}`);
+      }
     }
   };
 
+  // Enhanced stop recording function
   const stopRecording = () => {
-    console.log("Stopping recording...");
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      console.log(`Stopping MediaRecorder with state: ${mediaRecorderRef.current.state}`);
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        console.error('Error stopping MediaRecorder:', e);
+      }
+    }
+    
+    // Always stop all tracks in the stream
+    if (streamRef.current) {
+      console.log('Stopping all audio tracks');
+      streamRef.current.getTracks().forEach(track => {
+        try {
+          track.stop();
+        } catch (e) {
+          console.error('Error stopping audio track:', e);
+        }
+      });
+      streamRef.current = null;
+    }
+    
+    setIsRecording(false);
+    
+    // Stop timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
   };
+
+  // Enhanced data available handler
+  const handleDataAvailable = (e) => {
+    if (e.data && e.data.size > 0) {
+      console.log(`Adding chunk of size ${e.data.size} bytes`);
+      chunksRef.current.push(e.data);
+    } else {
+      console.warn('Received empty data chunk');
+    }
+    
+    // When recording has stopped and we have data, create the audio file
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive' && chunksRef.current.length > 0) {
+      const totalSize = chunksRef.current.reduce((total, chunk) => total + chunk.size, 0);
+      console.log(`Creating blob from ${chunksRef.current.length} chunks, total size: ${totalSize} bytes`);
+      
+      try {
+        // Try to determine the best blob type
+        let blobType = 'audio/webm';
+        if (mediaRecorderRef.current.mimeType) {
+          blobType = mediaRecorderRef.current.mimeType;
+        }
+        
+        const blob = new Blob(chunksRef.current, { type: blobType });
+        console.log(`Created blob of type ${blobType}, size: ${blob.size} bytes`);
+        
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        
+        // Immediately start transcribing
+        transcribeAudio(blob);
+      } catch (error) {
+        console.error('Error creating audio blob:', error);
+        setError(`Failed to process recording: ${error.message}`);
+      }
+    }
+  };
+
+  // Add a timer function if it's not already there
+  const startTimer = () => {
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    // Reset recording time
+    setRecordingTime(0);
+    
+    // Start the timer
+    const startTime = Date.now();
+    timerRef.current = setInterval(() => {
+      const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+      setRecordingTime(elapsedTime);
+    }, 1000);
+  };
+
+  // Add a useEffect to check device compatibility
+  useEffect(() => {
+    // Check if MediaRecorder is supported
+    if (!window.MediaRecorder) {
+      setError('Audio recording is not supported in this browser. Please try Chrome or Firefox on desktop.');
+      return;
+    }
+    
+    // Check if we're on HTTPS
+    if (window.location.protocol !== 'https:') {
+      setError('Warning: Microphone access typically requires HTTPS. You may encounter issues with recording.');
+    }
+    
+    // Detect browser
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const browser = 
+      /Firefox/i.test(navigator.userAgent) ? 'Firefox' :
+      /Chrome/i.test(navigator.userAgent) ? 'Chrome' :
+      /Safari/i.test(navigator.userAgent) ? 'Safari' :
+      'Unknown';
+    
+    console.log(`Device environment: Mobile: ${isMobile}, Browser: ${browser}`);
+    
+    // Add warning for known problematic environments
+    if (isMobile && browser === 'Safari') {
+      setError('Safari on iOS has limited support for audio recording. Consider using Chrome if you encounter issues.');
+    }
+  }, []);
 
   // Real API call for transcription
   const transcribeAudio = async (audioBlob) => {
@@ -755,9 +931,30 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
               <h4 style={fontStyles.feedbackHeading}>Review Your Answer</h4>
               <button
                 onClick={downloadAudio}
-                style={{...buttonStyle, padding: '5px 10px', fontSize: '0.9rem'}}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#FF9900', // Orange color that matches your theme
+                  padding: '8px',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  ':hover': {
+                    transform: 'scale(1.1)',
+                    boxShadow: '0 2px 5px rgba(0, 0, 0, 0.4)'
+                  }
+                }}
+                aria-label="Download Recording"
+                title="Download Recording"
               >
-                Download Recording
+                <span role="img" aria-hidden="true">
+                  💾
+                </span>
               </button>
             </div>
             <audio controls src={audioUrl} style={{ width: '100%', marginTop: '10px' }}></audio>
@@ -775,9 +972,30 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
               <h4 style={fontStyles.feedbackHeading}>Transcription</h4>
               <button
                 onClick={downloadTranscript}
-                style={{...buttonStyle, padding: '5px 10px', fontSize: '0.9rem'}}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#FF9900', // Orange color that matches your theme
+                  padding: '8px',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  ':hover': {
+                    transform: 'scale(1.1)',
+                    boxShadow: '0 2px 5px rgba(0, 0, 0, 0.4)'
+                  }
+                }}
+                aria-label="Download Transcript"
+                title="Download Transcript"
               >
-                Download Transcript
+                <span role="img" aria-hidden="true">
+                  💾
+                </span>
               </button>
             </div>
             <p>{transcription}</p>

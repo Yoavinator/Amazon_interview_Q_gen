@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './InterviewRecorder.css';
+import ReactMarkdown from 'react-markdown';
 
 const InterviewRecorder = ({ removePracticeHeader = false }) => {
   // State for recording
@@ -151,10 +152,17 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
     }
   };
 
-  // Real API call for feedback with improved prompt
+  // Updated generateAIFeedback function with length validation
   const generateAIFeedback = async () => {
     if (!transcription) {
       setError("Cannot generate feedback without a transcription");
+      return;
+    }
+    
+    // Check if transcription is too short (less than 20 words)
+    const wordCount = transcription.split(/\s+/).filter(word => word.length > 0).length;
+    if (wordCount < 20) {
+      setError(`Your answer is too short (${wordCount} words). Please provide a more detailed response for meaningful feedback.`);
       return;
     }
     
@@ -186,7 +194,9 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       setNetworkStatus(`Server responded with status: ${response.status}`);
       
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        // Better error handling with more details
+        const errorData = await response.json().catch(() => null);
+        throw new Error(`Server error: ${response.status}${errorData ? ' - ' + errorData.error : ''}`);
       }
       
       const data = await response.json();
@@ -215,6 +225,65 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Function to download audio
+  const downloadAudio = () => {
+    if (!audioUrl) return;
+    
+    // Create an invisible anchor element
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = audioUrl;
+    a.download = `interview_recording_${new Date().toISOString().slice(0,10)}.wav`;
+    
+    // Add to body, click to trigger download, then remove
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  // Function to download transcript
+  const downloadTranscript = () => {
+    if (!transcription) return;
+    
+    // Create a blob with the text content
+    const blob = new Blob([transcription], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create an invisible anchor element
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `interview_transcript_${new Date().toISOString().slice(0,10)}.txt`;
+    
+    // Add to body, click to trigger download, then remove
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    // Clean up the URL
+    URL.revokeObjectURL(url);
+  };
+
+  // Updated button styles to match "Get Another Question" button
+  const buttonStyle = {
+    backgroundColor: '#232f3e', // Amazon dark blue
+    color: '#ff9900',          // Amazon orange
+    border: '2px solid #ff9900',
+    borderRadius: '4px',
+    padding: '8px 16px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    fontWeight: 'bold',
+    margin: '5px',
+    transition: 'all 0.3s ease'
+  };
+
+  const activeButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#ff9900',
+    color: '#232f3e'
+  };
+
   // Styles for fonts
   const fontStyles = {
     subheading: {
@@ -227,6 +296,24 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       fontSize: '1rem',
       fontWeight: 'normal',
       color: 'white'
+    },
+    feedbackSection: {
+      backgroundColor: '#1a2433',
+      border: '1px solid #3a4553',
+      borderRadius: '5px',
+      padding: '15px 20px',
+      margin: '15px 0',
+      lineHeight: '1.6',
+      fontSize: '1rem',
+      color: 'white'
+    },
+    feedbackHeading: {
+      fontSize: '1.1rem',
+      fontWeight: 'bold',
+      color: '#FF9900',
+      marginBottom: '10px',
+      borderBottom: '1px solid #3a4553',
+      paddingBottom: '8px'
     }
   };
 
@@ -279,7 +366,7 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
               className={`record-btn ${isRecording ? 'recording' : ''}`}
               onClick={startRecording}
               disabled={isRecording}
-              style={fontStyles.bodyText}
+              style={isRecording ? activeButtonStyle : buttonStyle}
             >
               {isRecording ? 'Recording...' : 'Start Recording'}
             </button>
@@ -288,7 +375,7 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
               className="stop-btn"
               onClick={stopRecording}
               disabled={!isRecording}
-              style={fontStyles.bodyText}
+              style={buttonStyle}
             >
               Stop Recording
             </button>
@@ -301,7 +388,15 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
         
         {audioUrl && (
           <div className="audio-playback">
-            <h4>Review Your Answer</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h4 style={fontStyles.feedbackHeading}>Review Your Answer</h4>
+              <button
+                onClick={downloadAudio}
+                style={{...buttonStyle, padding: '5px 10px', fontSize: '0.9rem'}}
+              >
+                Download Recording
+              </button>
+            </div>
             <audio controls src={audioUrl} style={{ width: '100%', marginTop: '10px' }}></audio>
           </div>
         )}
@@ -312,13 +407,22 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
             <div className="loader"></div>
           </div>
         ) : transcription && (
-          <div className="transcription">
-            <h4>Transcription</h4>
+          <div className="transcription" style={fontStyles.feedbackSection}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h4 style={fontStyles.feedbackHeading}>Transcription</h4>
+              <button
+                onClick={downloadTranscript}
+                style={{...buttonStyle, padding: '5px 10px', fontSize: '0.9rem'}}
+              >
+                Download Transcript
+              </button>
+            </div>
             <p>{transcription}</p>
             <button 
               onClick={generateAIFeedback}
               disabled={isGeneratingFeedback}
               className="feedback-btn"
+              style={isGeneratingFeedback ? {...buttonStyle, opacity: 0.7} : buttonStyle}
             >
               {isGeneratingFeedback ? 'Generating Feedback...' : 'Get AI Feedback'}
             </button>
@@ -326,9 +430,33 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
         )}
         
         {feedback && (
-          <div className="ai-feedback">
-            <h4>AI Feedback</h4>
-            <div dangerouslySetInnerHTML={{ __html: feedback.replace(/\n/g, '<br>') }}></div>
+          <div className="ai-feedback" style={fontStyles.feedbackSection}>
+            <h4 style={fontStyles.feedbackHeading}>AI Feedback</h4>
+            {/* Use react-markdown for better formatting */}
+            <div className="markdown-content" style={{
+              color: 'white',
+              lineHeight: '1.6',
+              fontSize: '1rem'
+            }}>
+              {/* If you've added react-markdown */}
+              {typeof ReactMarkdown !== 'undefined' ? (
+                <ReactMarkdown>{feedback}</ReactMarkdown>
+              ) : (
+                // Fallback if ReactMarkdown isn't available
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: feedback
+                      .replace(/\n\n/g, '<br><br>')
+                      .replace(/\n/g, '<br>')
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      .replace(/# (.*?)$/gm, '<h3 style="color:#FF9900;margin-top:15px">$1</h3>')
+                      .replace(/## (.*?)$/gm, '<h4 style="color:#FF9900;margin-top:10px">$1</h4>')
+                      .replace(/### (.*?)$/gm, '<h5 style="color:#FF9900;margin-top:8px">$1</h5>')
+                  }} 
+                />
+              )}
+            </div>
           </div>
         )}
       </div>

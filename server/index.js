@@ -115,7 +115,22 @@ app.post('/api/feedback', async (req, res) => {
     const { transcription, question, feedbackType } = req.body;
     
     if (!transcription) {
+      console.log('No transcription provided');
       return res.status(400).json({ error: 'No transcription provided' });
+    }
+    
+    // Check for minimum transcription length and variety
+    const words = transcription.split(/\s+/).filter(word => word.length > 0);
+    const wordCount = words.length;
+    const uniqueWords = new Set(words.map(w => w.toLowerCase().replace(/[^a-z0-9]/g, '')));
+    
+    console.log('Transcription word count:', wordCount, 'Unique words:', uniqueWords.size);
+    
+    if (wordCount < 20 || uniqueWords.size < 5) {
+      console.log('Transcription too short or not diverse enough');
+      return res.status(400).json({ 
+        error: `Transcription too short or repetitive (${wordCount} words, ${uniqueWords.size} unique). Please provide a more detailed response.`
+      });
     }
     
     console.log('Processing feedback for question:', question);
@@ -194,11 +209,20 @@ app.post('/api/feedback', async (req, res) => {
       Format your response with markdown.`;
     }
     
-    // Call OpenAI API for real-time feedback generation
+    // Calculate token estimate for GPT-4 (approximate)
+    const inputTokenEstimate = (prompt.length / 4); // Very rough estimate
+    
+    // Set max tokens based on model and input length
+    const model = "gpt-4"; // Updated to GPT-4
+    const maxTokens = Math.min(4000, 8192 - Math.ceil(inputTokenEstimate));
+    
+    console.log(`Using model: ${model}, estimated input tokens: ~${Math.ceil(inputTokenEstimate)}, max output tokens: ${maxTokens}`);
+    
+    // Call OpenAI API for real-time feedback generation with GPT-4
     const openaiResponse = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: 'gpt-4.0',
+        model: model,
         messages: [
           { 
             role: 'system', 
@@ -208,7 +232,7 @@ app.post('/api/feedback', async (req, res) => {
           },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 1500,
+        max_tokens: maxTokens,
         temperature: 0.7,
       },
       {
@@ -225,7 +249,30 @@ app.post('/api/feedback', async (req, res) => {
     res.json(openaiResponse.data);
     
   } catch (error) {
+    // Improved error logging
     console.error('Feedback error:', error.message);
+    
+    // Check for specific OpenAI API errors
+    if (error.response && error.response.data) {
+      console.error('OpenAI API error details:', JSON.stringify(error.response.data));
+      
+      // Check for rate limits or quota errors
+      if (error.response.status === 429) {
+        return res.status(429).json({
+          error: 'OpenAI rate limit exceeded. Please try again later.',
+          details: error.response.data
+        });
+      }
+      
+      // Check for invalid API key
+      if (error.response.status === 401) {
+        return res.status(500).json({
+          error: 'Authentication error with AI provider. Please contact support.',
+          details: 'API key may be invalid or expired'
+        });
+      }
+    }
+    
     res.status(500).json({ 
       error: 'Failed to generate feedback',
       details: error.message 

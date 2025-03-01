@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import './InterviewRecorder.css';
 
-const InterviewRecorder = ({ question }) => {
+const InterviewRecorder = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState('');
   const [transcription, setTranscription] = useState('');
@@ -42,7 +42,7 @@ const InterviewRecorder = ({ question }) => {
         // Stop all tracks to release the microphone
         stream.getTracks().forEach(track => track.stop());
         
-        // Transcribe the audio
+        // Automatically transcribe the audio
         transcribeAudio(audioBlob);
       };
       
@@ -93,6 +93,9 @@ const InterviewRecorder = ({ question }) => {
       
       const data = await response.json();
       setTranscription(data.text);
+      
+      // Automatically get feedback after transcription
+      getInterviewFeedback(data.text);
     } catch (err) {
       console.error('Error transcribing audio:', err);
       setError(`Failed to transcribe audio: ${err.message}`);
@@ -101,8 +104,8 @@ const InterviewRecorder = ({ question }) => {
     }
   };
 
-  const getInterviewFeedback = async () => {
-    if (!transcription) return;
+  const getInterviewFeedback = async (transcribedText) => {
+    if (!transcribedText) return;
     
     setIsGeneratingFeedback(true);
     setError('');
@@ -123,7 +126,7 @@ const InterviewRecorder = ({ question }) => {
             },
             {
               role: 'user',
-              content: `Question: ${question}\n\nCandidate's Response: ${transcription}\n\nPlease provide feedback on this interview response. Evaluate clarity, structure, use of examples, and alignment with Amazon's leadership principles.`
+              content: `Candidate's Response: ${transcribedText}\n\nPlease provide feedback on this interview response. Evaluate clarity, structure, use of examples, and alignment with Amazon's leadership principles.`
             }
           ],
           temperature: 0.7,
@@ -155,14 +158,6 @@ const InterviewRecorder = ({ question }) => {
     <div className="interview-recorder">
       <h2>Practice Your Answer</h2>
       
-      <div className="question-display">
-        {question ? (
-          <p>{question}</p>
-        ) : (
-          <p className="empty">Generate a question first to practice your answer</p>
-        )}
-      </div>
-      
       <div className="recording-section">
         <h3>Record Your Answer</h3>
         
@@ -189,7 +184,7 @@ const InterviewRecorder = ({ question }) => {
             <button 
               className={`record-btn ${isRecording ? 'recording' : ''}`}
               onClick={startRecording}
-              disabled={isRecording || !question}
+              disabled={isRecording}
             >
               {isRecording ? 'Recording...' : 'Start Recording'}
             </button>
@@ -204,9 +199,7 @@ const InterviewRecorder = ({ question }) => {
           </div>
           
           <p className="recording-instructions">
-            {!question 
-              ? 'Generate a question first to start practicing' 
-              : 'Click "Start Recording" and answer the question as if you were in an Amazon interview'}
+            Click "Start Recording" and answer the question as if you were in an Amazon interview
           </p>
         </div>
         
@@ -217,10 +210,12 @@ const InterviewRecorder = ({ question }) => {
         )}
       </div>
       
-      {isTranscribing && (
+      {(isTranscribing || isGeneratingFeedback) && (
         <div className="loading-indicator">
           <div className="spinner"></div>
-          <span>Transcribing your answer...</span>
+          <span>
+            {isTranscribing ? 'Transcribing your answer...' : 'Analyzing your answer...'}
+          </span>
         </div>
       )}
       
@@ -232,21 +227,6 @@ const InterviewRecorder = ({ question }) => {
         <div className="transcription-section">
           <h3>Your Transcribed Answer</h3>
           <p className="transcription-text">{transcription}</p>
-          
-          <button 
-            className="feedback-button"
-            onClick={getInterviewFeedback}
-            disabled={isGeneratingFeedback || !transcription}
-          >
-            {isGeneratingFeedback ? 'Generating Feedback...' : 'Get AI Feedback'}
-          </button>
-        </div>
-      )}
-      
-      {isGeneratingFeedback && (
-        <div className="loading-indicator">
-          <div className="spinner"></div>
-          <span>Analyzing your answer...</span>
         </div>
       )}
       

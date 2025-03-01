@@ -26,6 +26,9 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
   const audioRef = useRef(null);
   const [audioProgress, setAudioProgress] = useState({ current: '0:00', duration: '0:00' });
 
+  // New state variable for transcription status
+  const [transcriptionStatus, setTranscriptionStatus] = useState('');
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -289,44 +292,82 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
     }
   }, []);
 
-  // Real API call for transcription
+  // Enhanced transcription function with better error handling and timeouts
   const transcribeAudio = async (audioBlob) => {
+    // Don't start transcribing if already in progress
+    if (isTranscribing) return;
+    
     setIsTranscribing(true);
-    setNetworkStatus('Sending audio to server...');
-    console.log("Sending audio to transcription API...");
+    setError(''); // Clear any previous errors
     
     try {
-      // Create form data
+      // Add a visible status message
+      setTranscriptionStatus('Preparing audio for transcription...');
+      
+      console.log('Preparing audio for transcription, blob size:', audioBlob.size);
+      
+      // Create a FormData object
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
+      formData.append('audio', audioBlob);
       
-      console.log("Making request to server:", 'https://amazon-interview-q-gen.onrender.com/api/transcribe');
+      setTranscriptionStatus('Uploading audio to transcription service...');
       
-      // Make API request
-      const response = await fetch('https://amazon-interview-q-gen.onrender.com/api/transcribe', {
+      // Set up timeout for the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
+      console.log('Starting transcription request');
+      
+      // Send the request with timeout
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`
+        },
         body: formData,
+        signal: controller.signal
+      })
+      .then(res => {
+        clearTimeout(timeoutId); // Clear timeout on successful response
+        return res;
       });
       
-      console.log("Received response:", response.status, response.statusText);
-      setNetworkStatus(`Server responded with status: ${response.status}`);
-      
+      // Check for HTTP errors
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Transcription API error:', response.status, errorText);
+        throw new Error(`Transcription failed with status ${response.status}: ${errorText}`);
       }
       
+      setTranscriptionStatus('Processing transcription results...');
       const data = await response.json();
-      console.log("Transcription data:", data);
+      console.log('Transcription completed successfully');
       
-      setTranscription(data.text || "No transcription received from server");
-      
+      if (data.text) {
+        setTranscription(data.text);
+        setTranscriptionStatus('');
+      } else {
+        throw new Error('Transcription response was empty');
+      }
     } catch (err) {
-      console.error("Transcription error:", err);
-      setError(`Transcription failed: ${err.message}`);
-      setTranscription("Failed to transcribe audio. Please try again.");
+      console.error('Transcription error:', err);
+      
+      // More user-friendly error messages
+      if (err.name === 'AbortError') {
+        setError('Transcription timed out. The audio might be too long or there could be network issues.');
+      } else if (err.message.includes('NetworkError')) {
+        setError('Network error during transcription. Please check your internet connection and try again.');
+      } else if (err.message.includes('401')) {
+        setError('Authentication error with the transcription service. API key might be invalid.');
+      } else if (err.message.includes('429')) {
+        setError('Transcription service rate limit exceeded. Please try again in a few minutes.');
+      } else {
+        setError(`Transcription failed: ${err.message}`);
+      }
+      
+      setTranscriptionStatus('');
     } finally {
       setIsTranscribing(false);
-      setNetworkStatus('');
     }
   };
 
@@ -1030,8 +1071,42 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
           </div>
         )}
       </div>
+
+      {/* Add a visual indicator for transcription status */}
+      {isTranscribing && (
+        <div style={{
+          backgroundColor: '#2d3748',
+          color: '#FF9900',
+          padding: '12px',
+          borderRadius: '6px',
+          marginTop: '10px',
+          marginBottom: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px'
+        }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            border: '3px solid #FF9900',
+            borderTopColor: 'transparent',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <span>{transcriptionStatus || 'Transcribing audio...'}</span>
+        </div>
+      )}
     </div>
   );
 };
 
 export default InterviewRecorder;
+
+/* Add this CSS for the spinner animation */
+<style>
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>

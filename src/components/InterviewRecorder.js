@@ -317,6 +317,369 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
     }
   };
 
+  // First, add this function to reset the state when a new question is generated
+  const resetRecordingState = () => {
+    setIsRecording(false);
+    setRecordingTime(0);
+    setAudioUrl(null);
+    setTranscription('');
+    setFeedback('');
+    setError('');
+    setNetworkStatus('');
+    setIsTranscribing(false);
+    setIsGeneratingFeedback(false);
+    
+    // Stop any ongoing recording
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    
+    // Clear audio chunks
+    chunksRef.current = [];
+    
+    // Stop timer if running
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    // Clear audio streams if any
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  // Add this useEffect to listen for question changes
+  useEffect(() => {
+    // Find the button that generates new questions
+    const newQuestionButton = document.querySelector('.get-question-btn');
+    if (newQuestionButton) {
+      const handleNewQuestion = () => {
+        resetRecordingState();
+      };
+      
+      newQuestionButton.addEventListener('click', handleNewQuestion);
+      
+      // Clean up
+      return () => {
+        newQuestionButton.removeEventListener('click', handleNewQuestion);
+      };
+    }
+  }, []);
+
+  // Enhanced styling for the feedback report
+  {feedback && (
+    <div className="ai-feedback" style={{
+      ...fontStyles.feedbackSection,
+      backgroundColor: '#f9f7f2', 
+      padding: '25px',
+      borderRadius: '8px',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+      color: '#333',
+      fontFamily: 'Arial, sans-serif',
+      maxWidth: '800px',
+      margin: '0 auto',
+    }}>
+      <h2 style={{
+        fontFamily: '"Times New Roman", Times, serif',
+        fontSize: '1.8rem',
+        color: '#333',
+        textAlign: 'center',
+        marginBottom: '20px',
+        fontStyle: 'italic',
+        borderBottom: '2px solid #e0e0e0',
+        paddingBottom: '10px',
+      }}>Interview Feedback Report</h2>
+      
+      <div className="markdown-content">
+        {typeof ReactMarkdown !== 'undefined' ? (
+          <ReactMarkdown
+            components={{
+              h2: ({node, ...props}) => {
+                const text = props.children[0] || '';
+                
+                // Extract section type
+                let sectionType = '';
+                let backgroundColor = '#f0f4f8'; // Default light blue-gray
+                let borderColor = '#cbd5e1';
+                let headerGradient = 'linear-gradient(to right, #e0e7ff, #c7d2fe)';
+                
+                if (text.toString().includes('📊')) {
+                  sectionType = 'score';
+                  backgroundColor = '#eef2ff'; // Light indigo
+                  borderColor = '#c7d2fe';
+                  headerGradient = 'linear-gradient(to right, #c7d2fe, #a5b4fc)';
+                } else if (text.toString().includes('📌')) {
+                  sectionType = 'star';
+                  backgroundColor = '#ecfdf5'; // Light green
+                  borderColor = '#a7f3d0';
+                  headerGradient = 'linear-gradient(to right, #d1fae5, #a7f3d0)';
+                } else if (text.toString().includes('🏆')) {
+                  sectionType = 'leadership';
+                  backgroundColor = '#fff1f2'; // Light red
+                  borderColor = '#fecdd3';
+                  headerGradient = 'linear-gradient(to right, #fee2e2, #fecaca)';
+                } else if (text.toString().includes('🧠')) {
+                  sectionType = 'skills';
+                  backgroundColor = '#eff6ff'; // Light blue
+                  borderColor = '#bfdbfe';
+                  headerGradient = 'linear-gradient(to right, #dbeafe, #bfdbfe)';
+                } else if (text.toString().includes('🚀')) {
+                  sectionType = 'improvements';
+                  backgroundColor = '#f5f3ff'; // Light purple
+                  borderColor = '#ddd6fe';
+                  headerGradient = 'linear-gradient(to right, #ede9fe, #ddd6fe)';
+                } else if (text.toString().includes('⚡')) {
+                  sectionType = 'summary';
+                  backgroundColor = '#fefce8'; // Light yellow
+                  borderColor = '#fef08a';
+                  headerGradient = 'linear-gradient(to right, #fef9c3, #fef08a)';
+                }
+                
+                return (
+                  <div style={{
+                    marginTop: '18px',
+                    marginBottom: '18px',
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                  }}>
+                    <h2 style={{
+                      background: headerGradient,
+                      padding: '10px 15px',
+                      margin: 0,
+                      color: '#1e293b', // Darker text for better contrast
+                      fontWeight: 'bold',
+                      fontSize: '1.2rem',
+                      borderBottom: `1px solid ${borderColor}`,
+                    }} {...props}/>
+                    <div style={{
+                      padding: '15px',
+                      backgroundColor: backgroundColor,
+                      lineHeight: '1.6',
+                    }} id={`section-${sectionType}`} className={`section-${sectionType}`}>
+                      {/* Content will be inserted here by ReactMarkdown */}
+                    </div>
+                  </div>
+                );
+              },
+              // Special handling for overall score section
+              p: ({node, children, ...props}) => {
+                const text = children.toString();
+                const parentElement = node.position ? 
+                  document.getElementById(`section-${getParentSectionType(node)}`) : null;
+                
+                // Special handling for score display
+                if (text.includes('Score:') && parentElement?.id === 'section-score') {
+                  const score = text.match(/Score:\s*(\d+(?:\.\d+)?)\s*\/\s*10/i)?.[1] || '?';
+                  return (
+                    <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                      <div style={{ 
+                        fontSize: '36px', 
+                        fontWeight: 'bold', 
+                        color: getScoreColor(parseFloat(score)),
+                        margin: '5px 0'
+                      }}>
+                        {score}/10
+                      </div>
+                      <p style={{ 
+                        fontSize: '14px', 
+                        color: '#64748b',
+                        marginTop: '0'
+                      }}>
+                        {text.replace(/Score:\s*\d+(?:\.\d+)?\s*\/\s*10/i, '')}
+                      </p>
+                    </div>
+                  );
+                }
+                
+                // Special styling for improvement suggestions
+                if (parentElement?.id === 'section-improvements') {
+                  if (text.match(/^\d+\.\s+/)) {
+                    // This is a numbered item in improvements
+                    const number = text.match(/^(\d+)\.\s+/)[1];
+                    const content = text.replace(/^\d+\.\s+/, '');
+                    
+                    // Bold the first phrase (up to the first dash or period)
+                    let styledContent = content;
+                    const mainPoint = content.split(/\s+[–—-]\s+|\.\s+/)[0];
+                    if (mainPoint && mainPoint !== content) {
+                      styledContent = content.replace(
+                        mainPoint, 
+                        `<strong style="color:#4338ca">${mainPoint}</strong>`
+                      );
+                    }
+                    
+                    return (
+                      <p style={{
+                        marginBottom: '12px',
+                        paddingLeft: '10px',
+                        borderLeft: '3px solid #818cf8'
+                      }}>
+                        <span style={{
+                          display: 'inline-block',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          backgroundColor: '#4f46e5',
+                          color: 'white',
+                          textAlign: 'center',
+                          marginRight: '10px',
+                          fontWeight: 'bold',
+                          lineHeight: '24px'
+                        }}>{number}</span>
+                        <span dangerouslySetInnerHTML={{ __html: styledContent }} />
+                      </p>
+                    );
+                  }
+                }
+                
+                // Default paragraph styling with appropriate spacing
+                return (
+                  <p style={{
+                    marginBottom: '12px',
+                    lineHeight: '1.6'
+                  }} {...props}>{children}</p>
+                );
+              },
+              strong: ({node, children, ...props}) => {
+                // Get parent section type
+                const parentSectionType = getParentSectionType(node);
+                
+                // Different styling based on section
+                let color = '#1e293b'; // Default dark color
+                
+                if (parentSectionType === 'score') color = '#4338ca'; // Indigo
+                if (parentSectionType === 'star') color = '#047857'; // Green
+                if (parentSectionType === 'leadership') color = '#b91c1c'; // Red
+                if (parentSectionType === 'skills') color = '#1d4ed8'; // Blue
+                if (parentSectionType === 'improvements') color = '#7c3aed'; // Purple
+                if (parentSectionType === 'summary') color = '#b45309'; // Amber
+                  
+                return (
+                  <strong style={{
+                    fontWeight: 'bold', 
+                    color: color
+                  }} {...props}>
+                    {children}
+                  </strong>
+                );
+              },
+              ul: ({node, ...props}) => (
+                <ul style={{
+                  marginLeft: '20px',
+                  listStyleType: 'disc',
+                  marginBottom: '15px'
+                }} {...props}/>
+              ),
+              ol: ({node, ...props}) => (
+                <ol style={{
+                  marginLeft: '20px',
+                  marginBottom: '15px'
+                }} {...props}/>
+              ),
+              li: ({node, children, ...props}) => {
+                // Get parent section type
+                const parentSectionType = getParentSectionType(node);
+                
+                return (
+                  <li style={{
+                    marginBottom: '8px',
+                    paddingLeft: '5px',
+                    ...(parentSectionType === 'leadership' || parentSectionType === 'skills' ? 
+                      { borderLeft: `2px solid ${parentSectionType === 'leadership' ? '#fca5a5' : '#93c5fd'}` } : {})
+                  }} {...props}>
+                    {children}
+                  </li>
+                );
+              },
+            }}
+          >
+            {feedback}
+          </ReactMarkdown>
+        ) : (
+          // Fallback without ReactMarkdown (simplified)
+          <div 
+            dangerouslySetInnerHTML={{ 
+              __html: feedback
+                .replace(/## (.*?)$/gm, '<h2 style="background:linear-gradient(to right, #e0e7ff, #c7d2fe);padding:10px 15px;margin:18px 0 0 0;color:#1e293b;font-weight:bold;font-size:1.2rem;border-radius:8px 8px 0 0;">$1</h2><div style="border:1px solid #cbd5e1;border-top:none;padding:15px;margin-bottom:18px;border-radius:0 0 8px 8px;background-color:#f0f4f8;line-height:1.6;">')
+                .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight:bold;color:#1e293b">$1</strong>')
+                .replace(/- (.*?)$/gm, '<ul style="margin-left:20px"><li style="margin-bottom:8px;line-height:1.6">$1</li></ul>')
+                .replace(/(\d+)\. (.*?)$/gm, '<ol style="margin-left:20px"><li style="margin-bottom:12px;line-height:1.6;padding-left:5px;">$1. $2</li></ol>')
+                .replace(/\n\n/g, '</div>\n\n')
+            }} 
+          />
+        )}
+      </div>
+      
+      {/* Download button for the feedback report */}
+      <div style={{textAlign: 'center', marginTop: '25px'}}>
+        <button
+          onClick={() => {
+            // Create a blob with the feedback content
+            const blob = new Blob([feedback], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            
+            // Create an invisible anchor element
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `interview_feedback_${new Date().toISOString().slice(0,10)}.md`;
+            
+            // Add to body, click to trigger download, then remove
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // Clean up the URL
+            URL.revokeObjectURL(url);
+          }}
+          style={{
+            ...buttonStyle, 
+            padding: '10px 18px',
+            background: 'linear-gradient(to right, #3b82f6, #1d4ed8)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+            ':hover': {
+              transform: 'translateY(-1px)',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.15)'
+            }
+          }}
+        >
+          📥 Download Feedback Report
+        </button>
+      </div>
+    </div>
+  )}
+
+  // Helper function to get parent section type
+  const getParentSectionType = (node) => {
+    if (!node || !node.position) return '';
+    
+    // Find the closest section div
+    const sections = document.querySelectorAll('[id^="section-"]');
+    for (const section of sections) {
+      // Simple position-based check
+      if (section.id) {
+        return section.id.replace('section-', '');
+      }
+    }
+    return '';
+  };
+
+  // Helper function to get color based on score
+  const getScoreColor = (score) => {
+    if (score >= 8) return '#16a34a'; // Green for high scores
+    if (score >= 6) return '#ca8a04'; // Yellow for medium scores
+    if (score >= 4) return '#ea580c'; // Orange for below average
+    return '#dc2626'; // Red for poor scores
+  };
+
   return (
     <div className="interview-recorder" id="single-interview-recorder">
       {!removePracticeHeader && (
@@ -430,32 +793,291 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
         )}
         
         {feedback && (
-          <div className="ai-feedback" style={fontStyles.feedbackSection}>
-            <h4 style={fontStyles.feedbackHeading}>AI Feedback</h4>
-            {/* Use react-markdown for better formatting */}
-            <div className="markdown-content" style={{
-              color: 'white',
-              lineHeight: '1.6',
-              fontSize: '1rem'
-            }}>
-              {/* If you've added react-markdown */}
+          <div className="ai-feedback" style={{
+            ...fontStyles.feedbackSection,
+            backgroundColor: '#f9f7f2', 
+            padding: '25px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            color: '#333',
+            fontFamily: 'Arial, sans-serif',
+            maxWidth: '800px',
+            margin: '0 auto',
+          }}>
+            <h2 style={{
+              fontFamily: '"Times New Roman", Times, serif',
+              fontSize: '1.8rem',
+              color: '#333',
+              textAlign: 'center',
+              marginBottom: '20px',
+              fontStyle: 'italic',
+              borderBottom: '2px solid #e0e0e0',
+              paddingBottom: '10px',
+            }}>Interview Feedback Report</h2>
+            
+            <div className="markdown-content">
               {typeof ReactMarkdown !== 'undefined' ? (
-                <ReactMarkdown>{feedback}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    h2: ({node, ...props}) => {
+                      const text = props.children[0] || '';
+                      
+                      // Extract section type
+                      let sectionType = '';
+                      let backgroundColor = '#f0f4f8'; // Default light blue-gray
+                      let borderColor = '#cbd5e1';
+                      let headerGradient = 'linear-gradient(to right, #e0e7ff, #c7d2fe)';
+                      
+                      if (text.toString().includes('📊')) {
+                        sectionType = 'score';
+                        backgroundColor = '#eef2ff'; // Light indigo
+                        borderColor = '#c7d2fe';
+                        headerGradient = 'linear-gradient(to right, #c7d2fe, #a5b4fc)';
+                      } else if (text.toString().includes('📌')) {
+                        sectionType = 'star';
+                        backgroundColor = '#ecfdf5'; // Light green
+                        borderColor = '#a7f3d0';
+                        headerGradient = 'linear-gradient(to right, #d1fae5, #a7f3d0)';
+                      } else if (text.toString().includes('🏆')) {
+                        sectionType = 'leadership';
+                        backgroundColor = '#fff1f2'; // Light red
+                        borderColor = '#fecdd3';
+                        headerGradient = 'linear-gradient(to right, #fee2e2, #fecaca)';
+                      } else if (text.toString().includes('🧠')) {
+                        sectionType = 'skills';
+                        backgroundColor = '#eff6ff'; // Light blue
+                        borderColor = '#bfdbfe';
+                        headerGradient = 'linear-gradient(to right, #dbeafe, #bfdbfe)';
+                      } else if (text.toString().includes('🚀')) {
+                        sectionType = 'improvements';
+                        backgroundColor = '#f5f3ff'; // Light purple
+                        borderColor = '#ddd6fe';
+                        headerGradient = 'linear-gradient(to right, #ede9fe, #ddd6fe)';
+                      } else if (text.toString().includes('⚡')) {
+                        sectionType = 'summary';
+                        backgroundColor = '#fefce8'; // Light yellow
+                        borderColor = '#fef08a';
+                        headerGradient = 'linear-gradient(to right, #fef9c3, #fef08a)';
+                      }
+                      
+                      return (
+                        <div style={{
+                          marginTop: '18px',
+                          marginBottom: '18px',
+                          border: `1px solid ${borderColor}`,
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                        }}>
+                          <h2 style={{
+                            background: headerGradient,
+                            padding: '10px 15px',
+                            margin: 0,
+                            color: '#1e293b', // Darker text for better contrast
+                            fontWeight: 'bold',
+                            fontSize: '1.2rem',
+                            borderBottom: `1px solid ${borderColor}`,
+                          }} {...props}/>
+                          <div style={{
+                            padding: '15px',
+                            backgroundColor: backgroundColor,
+                            lineHeight: '1.6',
+                          }} id={`section-${sectionType}`} className={`section-${sectionType}`}>
+                            {/* Content will be inserted here by ReactMarkdown */}
+                          </div>
+                        </div>
+                      );
+                    },
+                    // Special handling for overall score section
+                    p: ({node, children, ...props}) => {
+                      const text = children.toString();
+                      const parentElement = node.position ? 
+                        document.getElementById(`section-${getParentSectionType(node)}`) : null;
+                      
+                      // Special handling for score display
+                      if (text.includes('Score:') && parentElement?.id === 'section-score') {
+                        const score = text.match(/Score:\s*(\d+(?:\.\d+)?)\s*\/\s*10/i)?.[1] || '?';
+                        return (
+                          <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                            <div style={{ 
+                              fontSize: '36px', 
+                              fontWeight: 'bold', 
+                              color: getScoreColor(parseFloat(score)),
+                              margin: '5px 0'
+                            }}>
+                              {score}/10
+                            </div>
+                            <p style={{ 
+                              fontSize: '14px', 
+                              color: '#64748b',
+                              marginTop: '0'
+                            }}>
+                              {text.replace(/Score:\s*\d+(?:\.\d+)?\s*\/\s*10/i, '')}
+                            </p>
+                          </div>
+                        );
+                      }
+                      
+                      // Special styling for improvement suggestions
+                      if (parentElement?.id === 'section-improvements') {
+                        if (text.match(/^\d+\.\s+/)) {
+                          // This is a numbered item in improvements
+                          const number = text.match(/^(\d+)\.\s+/)[1];
+                          const content = text.replace(/^\d+\.\s+/, '');
+                          
+                          // Bold the first phrase (up to the first dash or period)
+                          let styledContent = content;
+                          const mainPoint = content.split(/\s+[–—-]\s+|\.\s+/)[0];
+                          if (mainPoint && mainPoint !== content) {
+                            styledContent = content.replace(
+                              mainPoint, 
+                              `<strong style="color:#4338ca">${mainPoint}</strong>`
+                            );
+                          }
+                          
+                          return (
+                            <p style={{
+                              marginBottom: '12px',
+                              paddingLeft: '10px',
+                              borderLeft: '3px solid #818cf8'
+                            }}>
+                              <span style={{
+                                display: 'inline-block',
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '50%',
+                                backgroundColor: '#4f46e5',
+                                color: 'white',
+                                textAlign: 'center',
+                                marginRight: '10px',
+                                fontWeight: 'bold',
+                                lineHeight: '24px'
+                              }}>{number}</span>
+                              <span dangerouslySetInnerHTML={{ __html: styledContent }} />
+                            </p>
+                          );
+                        }
+                      }
+                      
+                      // Default paragraph styling with appropriate spacing
+                      return (
+                        <p style={{
+                          marginBottom: '12px',
+                          lineHeight: '1.6'
+                        }} {...props}>{children}</p>
+                      );
+                    },
+                    strong: ({node, children, ...props}) => {
+                      // Get parent section type
+                      const parentSectionType = getParentSectionType(node);
+                      
+                      // Different styling based on section
+                      let color = '#1e293b'; // Default dark color
+                      
+                      if (parentSectionType === 'score') color = '#4338ca'; // Indigo
+                      if (parentSectionType === 'star') color = '#047857'; // Green
+                      if (parentSectionType === 'leadership') color = '#b91c1c'; // Red
+                      if (parentSectionType === 'skills') color = '#1d4ed8'; // Blue
+                      if (parentSectionType === 'improvements') color = '#7c3aed'; // Purple
+                      if (parentSectionType === 'summary') color = '#b45309'; // Amber
+                        
+                      return (
+                        <strong style={{
+                          fontWeight: 'bold', 
+                          color: color
+                        }} {...props}>
+                          {children}
+                        </strong>
+                      );
+                    },
+                    ul: ({node, ...props}) => (
+                      <ul style={{
+                        marginLeft: '20px',
+                        listStyleType: 'disc',
+                        marginBottom: '15px'
+                      }} {...props}/>
+                    ),
+                    ol: ({node, ...props}) => (
+                      <ol style={{
+                        marginLeft: '20px',
+                        marginBottom: '15px'
+                      }} {...props}/>
+                    ),
+                    li: ({node, children, ...props}) => {
+                      // Get parent section type
+                      const parentSectionType = getParentSectionType(node);
+                      
+                      return (
+                        <li style={{
+                          marginBottom: '8px',
+                          paddingLeft: '5px',
+                          ...(parentSectionType === 'leadership' || parentSectionType === 'skills' ? 
+                            { borderLeft: `2px solid ${parentSectionType === 'leadership' ? '#fca5a5' : '#93c5fd'}` } : {})
+                        }} {...props}>
+                          {children}
+                        </li>
+                      );
+                    },
+                  }}
+                >
+                  {feedback}
+                </ReactMarkdown>
               ) : (
-                // Fallback if ReactMarkdown isn't available
+                // Fallback without ReactMarkdown (simplified)
                 <div 
                   dangerouslySetInnerHTML={{ 
                     __html: feedback
-                      .replace(/\n\n/g, '<br><br>')
-                      .replace(/\n/g, '<br>')
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                      .replace(/# (.*?)$/gm, '<h3 style="color:#FF9900;margin-top:15px">$1</h3>')
-                      .replace(/## (.*?)$/gm, '<h4 style="color:#FF9900;margin-top:10px">$1</h4>')
-                      .replace(/### (.*?)$/gm, '<h5 style="color:#FF9900;margin-top:8px">$1</h5>')
+                      .replace(/## (.*?)$/gm, '<h2 style="background:linear-gradient(to right, #e0e7ff, #c7d2fe);padding:10px 15px;margin:18px 0 0 0;color:#1e293b;font-weight:bold;font-size:1.2rem;border-radius:8px 8px 0 0;">$1</h2><div style="border:1px solid #cbd5e1;border-top:none;padding:15px;margin-bottom:18px;border-radius:0 0 8px 8px;background-color:#f0f4f8;line-height:1.6;">')
+                      .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight:bold;color:#1e293b">$1</strong>')
+                      .replace(/- (.*?)$/gm, '<ul style="margin-left:20px"><li style="margin-bottom:8px;line-height:1.6">$1</li></ul>')
+                      .replace(/(\d+)\. (.*?)$/gm, '<ol style="margin-left:20px"><li style="margin-bottom:12px;line-height:1.6;padding-left:5px;">$1. $2</li></ol>')
+                      .replace(/\n\n/g, '</div>\n\n')
                   }} 
                 />
               )}
+            </div>
+            
+            {/* Download button for the feedback report */}
+            <div style={{textAlign: 'center', marginTop: '25px'}}>
+              <button
+                onClick={() => {
+                  // Create a blob with the feedback content
+                  const blob = new Blob([feedback], { type: 'text/markdown' });
+                  const url = URL.createObjectURL(blob);
+                  
+                  // Create an invisible anchor element
+                  const a = document.createElement('a');
+                  a.style.display = 'none';
+                  a.href = url;
+                  a.download = `interview_feedback_${new Date().toISOString().slice(0,10)}.md`;
+                  
+                  // Add to body, click to trigger download, then remove
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  
+                  // Clean up the URL
+                  URL.revokeObjectURL(url);
+                }}
+                style={{
+                  ...buttonStyle, 
+                  padding: '10px 18px',
+                  background: 'linear-gradient(to right, #3b82f6, #1d4ed8)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                  ':hover': {
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.15)'
+                  }
+                }}
+              >
+                📥 Download Feedback Report
+              </button>
             </div>
           </div>
         )}

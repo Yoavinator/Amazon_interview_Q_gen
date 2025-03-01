@@ -583,46 +583,14 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
               h2: ({node, ...props}) => {
                 const text = props.children[0] || '';
                 
-                // Extract section type
-                let sectionType = '';
-                let backgroundColor = '#f0f4f8'; // Default light blue-gray
-                let borderColor = '#cbd5e1';
-                let headerGradient = 'linear-gradient(to right, #e0e7ff, #c7d2fe)';
-                
-                if (text.toString().includes('📊')) {
-                  sectionType = 'score';
-                  backgroundColor = '#eef2ff'; // Light indigo
-                  borderColor = '#c7d2fe';
-                  headerGradient = 'linear-gradient(to right, #c7d2fe, #a5b4fc)';
-                } else if (text.toString().includes('📌')) {
-                  sectionType = 'star';
-                  backgroundColor = '#ecfdf5'; // Light green
-                  borderColor = '#a7f3d0';
-                  headerGradient = 'linear-gradient(to right, #d1fae5, #a7f3d0)';
-                } else if (text.toString().includes('🏆')) {
-                  sectionType = 'leadership';
-                  backgroundColor = '#fff1f2'; // Light red
-                  borderColor = '#fecdd3';
-                  headerGradient = 'linear-gradient(to right, #fee2e2, #fecaca)';
-                } else if (text.toString().includes('🧠')) {
-                  sectionType = 'skills';
-                  backgroundColor = '#eff6ff'; // Light blue
-                  borderColor = '#bfdbfe';
-                  headerGradient = 'linear-gradient(to right, #dbeafe, #bfdbfe)';
-                } else if (text.toString().includes('🚀')) {
-                  sectionType = 'improvements';
-                  backgroundColor = '#f5f3ff'; // Light purple
-                  borderColor = '#ddd6fe';
-                  headerGradient = 'linear-gradient(to right, #ede9fe, #ddd6fe)';
-                } else if (text.toString().includes('⚡')) {
-                  sectionType = 'summary';
-                  backgroundColor = '#fefce8'; // Light yellow
-                  borderColor = '#fef08a';
-                  headerGradient = 'linear-gradient(to right, #fef9c3, #fef08a)';
-                }
-                
                 return <h2 {...props} style={{
-                  ...headerStyle,
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  marginTop: '1.5em',
+                  marginBottom: '0.8em',
+                  color: '#FF9900',
+                  borderBottom: '1px solid #4B5563',
+                  paddingBottom: '0.5em',
                   textAlign: 'left',
                   display: 'block',
                   width: '100%'
@@ -856,8 +824,31 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
             </div>
             
             {/* Your existing download button */}
-            <button onClick={downloadAudio} style={buttonStyle}>
-              <span role="img" aria-hidden="true">💾</span>
+            <button
+              onClick={downloadAudio}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#FF9900',
+                padding: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                width: '40px',
+                height: '40px',
+                minWidth: '40px', // Prevent shrinking
+                marginLeft: 'auto' // Push to right side if in a flex container
+              }}
+              aria-label="Download Recording"
+              title="Download Recording"
+            >
+              <span role="img" aria-hidden="true">
+                💾
+              </span>
             </button>
           </div>
         )}
@@ -876,7 +867,7 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#FF9900', // Orange color that matches your theme
+                  color: '#FF9900',
                   padding: '8px',
                   cursor: 'pointer',
                   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
@@ -885,11 +876,10 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '1.5rem',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  ':hover': {
-                    transform: 'scale(1.1)',
-                    boxShadow: '0 2px 5px rgba(0, 0, 0, 0.4)'
-                  }
+                  width: '40px',
+                  height: '40px',
+                  minWidth: '40px', // Prevent shrinking
+                  marginLeft: 'auto' // Push to right side if in a flex container
                 }}
                 aria-label="Download Transcript"
                 title="Download Transcript"
@@ -941,46 +931,14 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
                     h2: ({node, ...props}) => {
                       const text = props.children[0] || '';
                       
-                      // Extract section type
-                      let sectionType = '';
-                      let backgroundColor = '#f0f4f8'; // Default light blue-gray
-                      let borderColor = '#cbd5e1';
-                      let headerGradient = 'linear-gradient(to right, #e0e7ff, #c7d2fe)';
-                      
-                      if (text.toString().includes('📊')) {
-                        sectionType = 'score';
-                        backgroundColor = '#eef2ff'; // Light indigo
-                        borderColor = '#c7d2fe';
-                        headerGradient = 'linear-gradient(to right, #c7d2fe, #a5b4fc)';
-                      } else if (text.toString().includes('📌')) {
-                        sectionType = 'star';
-                        backgroundColor = '#ecfdf5'; // Light green
-                        borderColor = '#a7f3d0';
-                        headerGradient = 'linear-gradient(to right, #d1fae5, #a7f3d0)';
-                      } else if (text.toString().includes('🏆')) {
-                        sectionType = 'leadership';
-                        backgroundColor = '#fff1f2'; // Light red
-                        borderColor = '#fecdd3';
-                        headerGradient = 'linear-gradient(to right, #fee2e2, #fecaca)';
-                      } else if (text.toString().includes('🧠')) {
-                        sectionType = 'skills';
-                        backgroundColor = '#eff6ff'; // Light blue
-                        borderColor = '#bfdbfe';
-                        headerGradient = 'linear-gradient(to right, #dbeafe, #bfdbfe)';
-                      } else if (text.toString().includes('🚀')) {
-                        sectionType = 'improvements';
-                        backgroundColor = '#f5f3ff'; // Light purple
-                        borderColor = '#ddd6fe';
-                        headerGradient = 'linear-gradient(to right, #ede9fe, #ddd6fe)';
-                      } else if (text.toString().includes('⚡')) {
-                        sectionType = 'summary';
-                        backgroundColor = '#fefce8'; // Light yellow
-                        borderColor = '#fef08a';
-                        headerGradient = 'linear-gradient(to right, #fef9c3, #fef08a)';
-                      }
-                      
                       return <h2 {...props} style={{
-                        ...headerStyle,
+                        fontSize: '1.2rem',
+                        fontWeight: 'bold',
+                        marginTop: '1.5em',
+                        marginBottom: '0.8em',
+                        color: '#FF9900',
+                        borderBottom: '1px solid #4B5563',
+                        paddingBottom: '0.5em',
                         textAlign: 'left',
                         display: 'block',
                         width: '100%'

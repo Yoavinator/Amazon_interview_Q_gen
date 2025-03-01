@@ -315,4 +315,39 @@ audio::-webkit-media-controls-play-button {
   .record-btn, .stop-btn, .feedback-button {
     width: 100%;
   }
+}
+
+/* Add responsive styles for mobile */
+@media screen and (max-width: 768px) {
+  .audio-playback, .transcription, .ai-feedback {
+    padding: 10px !important;
+  }
+  
+  audio {
+    width: 100% !important;
+  }
+  
+  .question-box {
+    padding: 12px !important;
+  }
+  
+  /* Make buttons stack better on mobile */
+  .recording-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .recording-controls button {
+    width: 100%;
+    margin: 2px 0;
+  }
+  
+  /* Improve readability of feedback on mobile */
+  .markdown-content h2 {
+    font-size: 1rem !important;
+  }
+  
+  .markdown-content {
+    font-size: 0.9rem !important;
+  }
 } 

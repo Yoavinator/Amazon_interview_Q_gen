@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import amazonJobsLogo from '../amazon-jobs-logo.png'; // Import the logo
 import './RandomQuestionGenerator.css';

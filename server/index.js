@@ -26,7 +26,10 @@ if (!fs.existsSync('uploads')) {
 }
 
 app.use(cors({
-  origin: ['https://your-netlify-app.netlify.app', 'http://localhost:3000'],
+  origin: [
+    'http://localhost:3000',         // For local development
+    'https://yoavinator.github.io'   // Your GitHub Pages base domain
+  ],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -55,16 +58,10 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
       formData.append('model', 'whisper-1');
 
       console.log('Sending request to OpenAI API...');
-      const response = await axios.post(
-        'https://api.openai.com/v1/audio/transcriptions',
-        formData,
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            ...formData.getHeaders()
-          }
-        }
-      );
+      const response = await fetch('https://amazon-interview-q-gen.onrender.com/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
       console.log('Received response from OpenAI API');
 
       // Clean up the uploaded file

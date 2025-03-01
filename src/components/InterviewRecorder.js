@@ -110,32 +110,48 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
     }
   };
 
+  // Real API call for transcription
   const transcribeAudio = async (audioBlob) => {
     setIsTranscribing(true);
-    setNetworkStatus('Simulating transcription...');
+    setNetworkStatus('Sending audio to server...');
+    console.log("Sending audio to transcription API...");
     
-    // Simulate a network delay
-    setTimeout(() => {
-      const transcriptions = [
-        "I think one of my strengths is my ability to collaborate effectively with cross-functional teams. For example, in my previous role, I worked with the engineering, design, and marketing teams to launch a new product feature that increased user engagement by 30%.",
-        
-        "When faced with a challenging problem, I typically break it down into smaller components and prioritize which aspects to tackle first. I also believe in leveraging data to inform my decision-making process.",
-        
-        "I've handled disagreements with colleagues by focusing on active listening and trying to understand their perspective. I believe in finding common ground and working towards a solution that addresses the core concerns of all parties involved.",
-        
-        "My approach to meeting tight deadlines involves creating a detailed plan, identifying potential bottlenecks early, and maintaining clear communication with stakeholders about progress and any challenges that arise.",
-        
-        "I'm interested in working at Amazon because of the company's customer obsession and innovation culture. I believe my skills in data analysis and problem-solving align well with Amazon's leadership principles."
-      ];
+    try {
+      // Create form data
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.wav');
       
-      // Select a random transcription or generate based on duration
-      const index = Math.floor(Math.random() * transcriptions.length);
-      setTranscription(transcriptions[index]);
+      console.log("Making request to server:", 'https://amazon-interview-q-gen.onrender.com/api/transcribe');
+      
+      // Make API request
+      const response = await fetch('https://amazon-interview-q-gen.onrender.com/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      console.log("Received response:", response.status, response.statusText);
+      setNetworkStatus(`Server responded with status: ${response.status}`);
+      
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Transcription data:", data);
+      
+      setTranscription(data.text || "No transcription received from server");
+      
+    } catch (err) {
+      console.error("Transcription error:", err);
+      setError(`Transcription failed: ${err.message}`);
+      setTranscription("Failed to transcribe audio. Please try again.");
+    } finally {
       setIsTranscribing(false);
       setNetworkStatus('');
-    }, 2000);
+    }
   };
 
+  // Real API call for feedback with improved prompt
   const generateAIFeedback = async () => {
     if (!transcription) {
       setError("Cannot generate feedback without a transcription");
@@ -150,88 +166,38 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       // Get the current question from the DOM
       const question = document.querySelector('.question-box-inner p')?.textContent || 'Unknown question';
       
-      console.log("Making feedback request to server...");
+      console.log("Making request to feedback API with question:", question);
+      console.log("Transcription:", transcription.substring(0, 100) + "...");
       
-      // Use the direct URL but with mode: 'no-cors' to handle CORS issues
+      // Make API request for real feedback with STAR and Leadership Principles focus
       const response = await fetch('https://amazon-interview-q-gen.onrender.com/api/feedback', {
         method: 'POST',
-        mode: 'no-cors', // This bypasses CORS but means we can't read the response
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           transcription,
           question,
+          feedbackType: 'amazon_pm',  // Signal to server this is for Amazon PM role
         }),
       });
       
-      // Since no-cors means we can't read the response,
-      // we'll use a simulated response for now
+      console.log("Received response:", response.status, response.statusText);
+      setNetworkStatus(`Server responded with status: ${response.status}`);
       
-      const feedbacks = [
-        `## Feedback on Your Answer
-
-### How well the candidate answered the question
-* Good job addressing the key aspects of the question
-* Provided a specific example which strengthens your answer
-* Clear demonstration of your skills and approach
-
-### Structure and clarity
-* Well-structured response with a clear beginning and conclusion
-* Good use of the STAR method (Situation, Task, Action, Result)
-* Could be slightly more concise in some areas
-
-### Specific improvements
-* Consider quantifying more of your achievements
-* Relate your experience more explicitly to Amazon's Leadership Principles
-* Add one more concrete example to demonstrate consistency
-
-### Overall rating: 8/10`,
-
-        `## Feedback on Your Answer
-
-### How well the candidate answered the question
-* Addressed the main points of the question
-* Demonstrated analytical thinking and methodical approach
-* Could provide more specific examples
-
-### Structure and clarity
-* Logical flow of ideas
-* Clear explanation of your process
-* Introduction could be stronger to grab attention
-
-### Specific improvements
-* Connect your answer more directly to the role you're applying for
-* Include metrics or results from past experiences
-* Mention how you've grown from challenging situations
-
-### Overall rating: 7/10`,
-
-        `## Feedback on Your Answer
-
-### How well the candidate answered the question
-* Strong focus on collaboration and conflict resolution
-* Good explanation of your communication style
-* Covered both prevention and resolution strategies
-
-### Structure and clarity
-* Well-organized thoughts
-* Easy to follow your reasoning
-* Good balance of concepts and examples
-
-### Specific improvements
-* Highlight how your approach aligns with Amazon's Leadership Principles
-* Provide an example where your approach led to a successful outcome
-* Add a brief mention of how you follow up after resolving disagreements
-
-### Overall rating: 8.5/10`
-      ];
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
       
-      // Select a random feedback
-      const index = Math.floor(Math.random() * feedbacks.length);
-      setFeedback(feedbacks[index]);
+      const data = await response.json();
+      console.log("Feedback data received:", Object.keys(data));
       
-      console.log("Feedback response received and processed");
+      // Extract feedback content from response
+      const feedbackContent = data.choices?.[0]?.message?.content || 
+                             data.feedback || 
+                             "No feedback content received from server";
+      
+      setFeedback(feedbackContent);
       
     } catch (err) {
       console.error("Feedback error:", err);

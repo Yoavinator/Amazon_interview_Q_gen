@@ -112,13 +112,14 @@ app.post('/api/feedback', async (req, res) => {
   console.log('Feedback request received');
   
   try {
-    const { transcription, question } = req.body;
+    const { transcription, question, feedbackType } = req.body;
     
     if (!transcription) {
       return res.status(400).json({ error: 'No transcription provided' });
     }
     
     console.log('Processing feedback for question:', question);
+    console.log('Feedback type:', feedbackType || 'standard');
     
     // Check if OpenAI API key is set
     if (!process.env.OPENAI_API_KEY) {
@@ -132,18 +133,66 @@ app.post('/api/feedback', async (req, res) => {
       });
     }
     
-    // Prepare prompt for ChatGPT
-    const prompt = `As an Amazon interview coach, evaluate the following candidate's answer to this question: "${question}".
+    // Prepare prompt for ChatGPT - enhanced for Amazon PM interviews
+    let prompt;
     
-    Candidate's answer: "${transcription}"
-    
-    Provide feedback in these areas:
-    1. How well the candidate answered the question
-    2. Structure and clarity
-    3. Specific improvements
-    4. Overall rating out of 10
-    
-    Format your response with markdown.`;
+    if (feedbackType === 'amazon_pm') {
+      prompt = `As an Amazon interview coach specializing in Product Management roles, evaluate the following candidate's answer to this question: "${question}".
+      
+      Candidate's answer: "${transcription}"
+      
+      Provide detailed feedback using these frameworks:
+      
+      1. STAR Method Analysis:
+         - Situation: Did the candidate clearly establish the context?
+         - Task: Was their role/responsibility clearly articulated?
+         - Action: Did they explain their specific actions with enough detail?
+         - Result: Did they quantify the impact and outcomes?
+      
+      2. Amazon Leadership Principles Assessment:
+         Evaluate how well the answer demonstrated relevant Amazon Leadership Principles, such as:
+         - Customer Obsession
+         - Ownership
+         - Invent and Simplify
+         - Are Right, A Lot
+         - Learn and Be Curious
+         - Hire and Develop the Best
+         - Insist on the Highest Standards
+         - Think Big
+         - Bias for Action
+         - Frugality
+         - Earn Trust
+         - Dive Deep
+         - Have Backbone; Disagree and Commit
+         - Deliver Results
+      
+      3. PM-Specific Skills:
+         - Product sense
+         - Strategic thinking
+         - Data-driven decision making
+         - Cross-functional collaboration
+      
+      4. Improvement Suggestions:
+         Provide 3-4 specific ways the candidate could strengthen their answer.
+      
+      5. Overall Rating:
+         Score the answer out of 10 and provide a brief summary.
+      
+      Format your response with markdown.`;
+    } else {
+      // Standard prompt for other interview types
+      prompt = `As an Amazon interview coach, evaluate the following candidate's answer to this question: "${question}".
+      
+      Candidate's answer: "${transcription}"
+      
+      Provide feedback in these areas:
+      1. How well the candidate answered the question
+      2. Structure and clarity
+      3. Specific improvements
+      4. Overall rating out of 10
+      
+      Format your response with markdown.`;
+    }
     
     // Call OpenAI API for real-time feedback generation
     const openaiResponse = await axios.post(
@@ -151,10 +200,15 @@ app.post('/api/feedback', async (req, res) => {
       {
         model: 'gpt-3.5-turbo',
         messages: [
-          { role: 'system', content: 'You are an Amazon interview coach helping candidates improve their interview skills.' },
+          { 
+            role: 'system', 
+            content: feedbackType === 'amazon_pm' 
+              ? 'You are an expert Amazon interview coach specializing in Product Management roles. You have extensive knowledge of the STAR method and Amazon Leadership Principles.'
+              : 'You are an Amazon interview coach helping candidates improve their interview skills.'
+          },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 1000,
+        max_tokens: 1500,
         temperature: 0.7,
       },
       {

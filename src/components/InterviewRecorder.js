@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import './InterviewRecorder.css';
 
-const InterviewRecorder = () => {
+const InterviewRecorder = ({ removePracticeHeader = false }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState('');
   const [transcription, setTranscription] = useState('');
@@ -42,8 +42,12 @@ const InterviewRecorder = () => {
         // Stop all tracks to release the microphone
         stream.getTracks().forEach(track => track.stop());
         
-        // Automatically transcribe the audio
-        transcribeAudio(audioBlob);
+        // Simulate transcription
+        setIsTranscribing(true);
+        setTimeout(() => {
+          setTranscription('This is a simulated transcription of your answer. In a real implementation, this would be processed through a speech-to-text service like OpenAI\'s Whisper API.');
+          setIsTranscribing(false);
+        }, 1500);
       };
       
       mediaRecorderRef.current.start();
@@ -70,82 +74,14 @@ const InterviewRecorder = () => {
     }
   };
 
-  const transcribeAudio = async (audioBlob) => {
-    setIsTranscribing(true);
-    setError('');
-    
-    try {
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'recording.wav');
-      formData.append('model', 'whisper-1');
-      
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`
-        },
-        body: formData
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Transcription failed: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      setTranscription(data.text);
-      
-      // Automatically get feedback after transcription
-      getInterviewFeedback(data.text);
-    } catch (err) {
-      console.error('Error transcribing audio:', err);
-      setError(`Failed to transcribe audio: ${err.message}`);
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
-
-  const getInterviewFeedback = async (transcribedText) => {
-    if (!transcribedText) return;
-    
+  const generateFeedback = async () => {
     setIsGeneratingFeedback(true);
-    setError('');
     
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert Amazon interview coach. Analyze the candidate\'s response and provide constructive feedback.'
-            },
-            {
-              role: 'user',
-              content: `Candidate's Response: ${transcribedText}\n\nPlease provide feedback on this interview response. Evaluate clarity, structure, use of examples, and alignment with Amazon's leadership principles.`
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 1000
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Feedback generation failed: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      setFeedback(data.choices[0].message.content);
-    } catch (err) {
-      console.error('Error generating feedback:', err);
-      setError(`Failed to generate feedback: ${err.message}`);
-    } finally {
+    // Simulate AI feedback generation
+    setTimeout(() => {
+      setFeedback('This is where AI feedback on your answer would appear.');
       setIsGeneratingFeedback(false);
-    }
+    }, 2000);
   };
 
   const formatTime = (seconds) => {
@@ -154,12 +90,39 @@ const InterviewRecorder = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Standardized font sizes
+  const fontStyles = {
+    subheading: {
+      fontSize: '1.2rem',
+      fontWeight: '500',
+      color: '#FF9900',
+      fontFamily: 'Amazon Ember, Arial, sans-serif'
+    },
+    bodyText: {
+      fontSize: '1rem',
+      fontWeight: 'normal',
+      color: 'white'
+    }
+  };
+
   return (
-    <div className="interview-recorder">
-      <h2>Practice Your Answer</h2>
+    <div className="interview-recorder" id="single-interview-recorder">
+      {/* Remove the "Practice Your Answer" header if requested */}
+      {!removePracticeHeader && (
+        <h2 style={fontStyles.subheading}>
+          Record Your Answer
+        </h2>
+      )}
       
       <div className="recording-section">
-        <h3>Record Your Answer</h3>
+        <h3 style={{
+          fontSize: fontStyles.subheading.fontSize,
+          fontWeight: fontStyles.subheading.fontWeight,
+          color: fontStyles.subheading.color,
+          fontFamily: fontStyles.subheading.fontFamily
+        }}>
+          Record Your Answer
+        </h3>
         
         <div className="recording-container">
           {isRecording && (
@@ -176,7 +139,9 @@ const InterviewRecorder = () => {
                   />
                 ))}
               </div>
-              <div className="timer">{formatTime(recordingTime)}</div>
+              <div className="timer" style={{ fontSize: fontStyles.bodyText.fontSize }}>
+                {formatTime(recordingTime)}
+              </div>
             </div>
           )}
           
@@ -185,6 +150,7 @@ const InterviewRecorder = () => {
               className={`record-btn ${isRecording ? 'recording' : ''}`}
               onClick={startRecording}
               disabled={isRecording}
+              style={{ fontSize: fontStyles.bodyText.fontSize }}
             >
               {isRecording ? 'Recording...' : 'Start Recording'}
             </button>
@@ -193,12 +159,13 @@ const InterviewRecorder = () => {
               className="stop-btn"
               onClick={stopRecording}
               disabled={!isRecording}
+              style={{ fontSize: fontStyles.bodyText.fontSize }}
             >
               Stop Recording
             </button>
           </div>
           
-          <p className="recording-instructions">
+          <p className="recording-instructions" style={{ fontSize: fontStyles.bodyText.fontSize }}>
             Click "Start Recording" and answer the question as if you were in an Amazon interview
           </p>
         </div>
@@ -224,10 +191,21 @@ const InterviewRecorder = () => {
       )}
       
       {transcription && (
-        <div className="transcription-section">
-          <h3>Your Transcribed Answer</h3>
-          <p className="transcription-text">{transcription}</p>
-        </div>
+        <>
+          <h2 className="your-transcribed-answer">Your Transcribed Answer</h2>
+          <div className="transcription-section">
+            <p className="transcription-text">{transcription}</p>
+            
+            {!feedback && !isGeneratingFeedback && (
+              <button 
+                className="feedback-button"
+                onClick={generateFeedback}
+              >
+                Get AI Feedback
+              </button>
+            )}
+          </div>
+        </>
       )}
       
       {feedback && (

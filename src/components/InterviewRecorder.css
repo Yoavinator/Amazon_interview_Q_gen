@@ -7,6 +7,7 @@
   background-color: #232F3E;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: 'Amazon Ember', Arial, sans-serif;
 }
 
 .interview-recorder h2 {
@@ -14,6 +15,8 @@
   margin-top: 0;
   margin-bottom: 20px;
   font-size: 1.5rem;
+  text-align: center;
+  font-weight: 500;
 }
 
 .question-display {
@@ -44,7 +47,7 @@
 }
 
 .recording-section {
-  margin-top: 30px;
+  margin-top: 20px;
   padding: 20px;
   background-color: #1a2433;
   border-radius: 8px;
@@ -54,6 +57,8 @@
   color: #FF9900;
   margin-bottom: 15px;
   font-size: 1.3rem;
+  text-align: center;
+  font-weight: 500;
 }
 
 .recording-container {
@@ -80,43 +85,46 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 60px;
-  width: 100%;
-  gap: 3px;
+  height: 40px;
+  margin-bottom: 5px;
 }
 
-.visualizer .bar {
-  width: 3px;
+.bar {
+  width: 5px;
   background-color: #FF9900;
-  border-radius: 1px;
-  animation: sound-wave 0.5s infinite alternate;
+  margin: 0 3px;
+  border-radius: 2px;
+  animation: soundWave 0.5s infinite alternate;
 }
 
-@keyframes sound-wave {
-  0% {
-    height: 10px;
-  }
-  100% {
-    height: 40px;
-  }
+@keyframes soundWave {
+  0% { height: 10px; }
+  100% { height: 40px; }
+}
+
+.timer {
+  font-size: 1.2rem;
+  color: #FF9900;
+  font-weight: bold;
 }
 
 .recording-controls {
   display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-  justify-content: center;
+  gap: 15px;
   width: 100%;
 }
 
 .record-btn, .stop-btn {
-  padding: 10px 20px;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  flex: 1;
+  padding: 12px 24px;
   border: none;
-  width: 100%;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .record-btn {
@@ -124,55 +132,59 @@
   color: #232F3E;
 }
 
-.record-btn.recording {
-  background-color: #E31C3D;
-  animation: pulse 1.5s infinite;
+.record-btn:hover:not(:disabled) {
+  background-color: #e88e00;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.record-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.record-btn.recording, .record-btn:disabled {
+  background-color: #e88e00;
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .stop-btn {
-  background-color: #37475A;
-  color: #f0f0f0;
+  background-color: #d9d9d9;
+  color: #232F3E;
 }
 
-.record-btn:disabled, .stop-btn:disabled {
-  opacity: 0.5;
+.stop-btn:hover:not(:disabled) {
+  background-color: #cccccc;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.stop-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.stop-btn:disabled {
+  background-color: #ccc;
+  color: #666;
   cursor: not-allowed;
-}
-
-.record-btn:hover, .stop-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: none;
+  transform: none;
 }
 
 .recording-instructions {
-  color: #a0aec0;
   font-size: 0.9rem;
+  color: #bbb;
   text-align: center;
   margin-top: 10px;
 }
 
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-.timer {
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin: 10px 0;
-  color: #FF9900;
-}
-
 .audio-playback {
-  margin-top: 15px;
   width: 100%;
+  margin-top: 20px;
 }
 
 .audio-playback audio {
@@ -181,25 +193,38 @@
   background-color: #37475A;
 }
 
+audio::-webkit-media-controls-panel {
+  background-color: #37475A;
+}
+
+audio::-webkit-media-controls-play-button {
+  background-color: #FF9900;
+  border-radius: 50%;
+}
+
 .transcription-section, .feedback-section {
-  margin-top: 25px;
-  padding: 15px;
+  margin-top: 30px;
+  padding: 20px;
   background-color: #1a2433;
   border-radius: 8px;
-  border-left: 4px solid #FF9900;
 }
 
-.transcription-text, .feedback-text {
-  color: #f0f0f0;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  text-align: left;
-}
-
-.feedback-section h3 {
+.transcription-section h3, .feedback-section h3 {
   color: #FF9900;
   margin-bottom: 15px;
   font-size: 1.2rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+.transcription-text, .feedback-text {
+  background-color: #37475A;
+  padding: 15px;
+  border-radius: 4px;
+  white-space: pre-line;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
 }
 
 .feedback-button {
@@ -207,27 +232,33 @@
   color: #232F3E;
   border: none;
   border-radius: 4px;
-  padding: 10px 20px;
+  padding: 12px 24px;
   font-size: 1rem;
-  font-weight: bold;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   margin-bottom: 15px;
   width: 100%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .feedback-button:hover {
   background-color: #e88e00;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.feedback-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .feedback-button:disabled {
-  background-color: #555;
-  color: #999;
+  background-color: #ccc;
+  color: #666;
   cursor: not-allowed;
-  transform: none;
   box-shadow: none;
+  transform: none;
 }
 
 .loading-indicator {
@@ -261,6 +292,14 @@
   border-radius: 4px;
   margin: 15px 0;
   border-left: 3px solid #E31C3D;
+}
+
+.your-transcribed-answer {
+  color: #FF9900;
+  font-size: 1.5rem;
+  text-align: center;
+  margin: 20px 0;
+  font-weight: 500;
 }
 
 @media (max-width: 768px) {

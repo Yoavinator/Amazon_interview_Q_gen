@@ -3,7 +3,7 @@
   width: 100%;
   margin: 20px auto;
   padding: 20px;
-  font-family: Arial, sans-serif;
+  font-family: 'Amazon Ember', Arial, sans-serif;
   color: #f0f0f0;
   background-color: #232F3E;
   border-radius: 8px;
@@ -32,59 +32,74 @@
   width: 100%;
   padding: 10px;
   border-radius: 4px;
-  background-color: #37475A;
-  color: #f0f0f0;
-  border: 1px solid #556B88;
+  background-color: #fff;
+  color: #232F3E;
+  border: 1px solid #ccc;
   font-size: 1rem;
 }
 
 .button-container {
   display: flex;
   justify-content: center;
-  margin-bottom: 20px;
+  gap: 15px;
+  margin: 20px 0;
 }
 
 .action-button {
-  background-color: #FF9900;
+  background-color: #fff;
   color: #232F3E;
   border: none;
   border-radius: 4px;
-  padding: 10px 20px;
+  padding: 12px 24px;
   font-size: 1rem;
-  font-weight: bold;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
-  max-width: 250px;
+  transition: all 0.2s ease;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .action-button:hover {
-  background-color: #e88e00;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  background-color: #f7f7f7;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.action-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .action-button:disabled {
-  background-color: #555;
-  color: #999;
+  background-color: #ccc;
+  color: #666;
   cursor: not-allowed;
-  transform: none;
   box-shadow: none;
+  transform: none;
 }
 
 .question-box {
-  margin-top: 20px;
+  margin: 20px 0;
   padding: 20px;
-  background-color: #37475A;
+  background-color: #fff;
   border-radius: 8px;
-  border-left: 4px solid #FF9900;
-  min-height: 150px; /* Fixed height for consistency */
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.question-box-inner {
+  width: 100%;
 }
 
 .question-box p {
   margin: 0;
   font-size: 1.2rem;
-  line-height: 1.6;
-  color: #f0f0f0;
+  line-height: 1.5;
+  color: #232F3E;
+  text-align: center;
 }
 
 .category-info {
@@ -177,6 +192,11 @@
   color: #E31C3D;
 }
 
+/* Remove duplicate interview recorder box */
+.interview-recorder:not(#single-interview-recorder) {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .question-generator {
     padding: 15px;
@@ -196,4 +216,4 @@
     width: 100%;
     margin-bottom: 5px;
   }
-} 
+}

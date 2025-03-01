@@ -23,6 +23,8 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
+  const audioRef = useRef(null);
+  const [audioProgress, setAudioProgress] = useState({ current: '0:00', duration: '0:00' });
 
   // Clean up on unmount
   useEffect(() => {
@@ -397,8 +399,8 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   // Function to download audio
@@ -490,6 +492,14 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       marginBottom: '10px',
       borderBottom: '1px solid #3a4553',
       paddingBottom: '8px'
+    },
+    controlSection: {
+      marginBottom: '15px'
+    },
+    heading: {
+      fontSize: '1.2rem',
+      fontWeight: 'bold',
+      marginBottom: '10px'
     }
   };
 
@@ -611,164 +621,35 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
                   headerGradient = 'linear-gradient(to right, #fef9c3, #fef08a)';
                 }
                 
-                return (
-                  <div style={{
-                    marginTop: '18px',
-                    marginBottom: '18px',
-                    border: `1px solid ${borderColor}`,
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
-                  }}>
-                    <h2 style={{
-                      background: headerGradient,
-                      padding: '10px 15px',
-                      margin: 0,
-                      color: '#1e293b', // Darker text for better contrast
-                      fontWeight: 'bold',
-                      fontSize: '1.2rem',
-                      borderBottom: `1px solid ${borderColor}`,
-                    }} {...props}/>
-                    <div style={{
-                      padding: '15px',
-                      backgroundColor: backgroundColor,
-                      lineHeight: '1.6',
-                    }} id={`section-${sectionType}`} className={`section-${sectionType}`}>
-                      {/* Content will be inserted here by ReactMarkdown */}
-                    </div>
-                  </div>
-                );
+                return <h2 {...props} style={{
+                  ...headerStyle,
+                  textAlign: 'left',
+                  display: 'block',
+                  width: '100%'
+                }} />;
               },
-              // Special handling for overall score section
-              p: ({node, children, ...props}) => {
-                const text = children.toString();
-                const parentElement = node.position ? 
-                  document.getElementById(`section-${getParentSectionType(node)}`) : null;
-                
-                // Special handling for score display
-                if (text.includes('Score:') && parentElement?.id === 'section-score') {
-                  const score = text.match(/Score:\s*(\d+(?:\.\d+)?)\s*\/\s*10/i)?.[1] || '?';
-                  return (
-                    <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                      <div style={{ 
-                        fontSize: '36px', 
-                        fontWeight: 'bold', 
-                        color: getScoreColor(parseFloat(score)),
-                        margin: '5px 0'
-                      }}>
-                        {score}/10
-                      </div>
-                      <p style={{ 
-                        fontSize: '14px', 
-                        color: '#64748b',
-                        marginTop: '0'
-                      }}>
-                        {text.replace(/Score:\s*\d+(?:\.\d+)?\s*\/\s*10/i, '')}
-                      </p>
-                    </div>
-                  );
-                }
-                
-                // Special styling for improvement suggestions
-                if (parentElement?.id === 'section-improvements') {
-                  if (text.match(/^\d+\.\s+/)) {
-                    // This is a numbered item in improvements
-                    const number = text.match(/^(\d+)\.\s+/)[1];
-                    const content = text.replace(/^\d+\.\s+/, '');
-                    
-                    // Bold the first phrase (up to the first dash or period)
-                    let styledContent = content;
-                    const mainPoint = content.split(/\s+[–—-]\s+|\.\s+/)[0];
-                    if (mainPoint && mainPoint !== content) {
-                      styledContent = content.replace(
-                        mainPoint, 
-                        `<strong style="color:#4338ca">${mainPoint}</strong>`
-                      );
-                    }
-                    
-                    return (
-                      <p style={{
-                        marginBottom: '12px',
-                        paddingLeft: '10px',
-                        borderLeft: '3px solid #818cf8'
-                      }}>
-                        <span style={{
-                          display: 'inline-block',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          backgroundColor: '#4f46e5',
-                          color: 'white',
-                          textAlign: 'center',
-                          marginRight: '10px',
-                          fontWeight: 'bold',
-                          lineHeight: '24px'
-                        }}>{number}</span>
-                        <span dangerouslySetInnerHTML={{ __html: styledContent }} />
-                      </p>
-                    );
-                  }
-                }
-                
-                // Default paragraph styling with appropriate spacing
-                return (
-                  <p style={{
-                    marginBottom: '12px',
-                    lineHeight: '1.6'
-                  }} {...props}>{children}</p>
-                );
-              },
-              strong: ({node, children, ...props}) => {
-                // Get parent section type
-                const parentSectionType = getParentSectionType(node);
-                
-                // Different styling based on section
-                let color = '#1e293b'; // Default dark color
-                
-                if (parentSectionType === 'score') color = '#4338ca'; // Indigo
-                if (parentSectionType === 'star') color = '#047857'; // Green
-                if (parentSectionType === 'leadership') color = '#b91c1c'; // Red
-                if (parentSectionType === 'skills') color = '#1d4ed8'; // Blue
-                if (parentSectionType === 'improvements') color = '#7c3aed'; // Purple
-                if (parentSectionType === 'summary') color = '#b45309'; // Amber
-                  
-                return (
-                  <strong style={{
-                    fontWeight: 'bold', 
-                    color: color
-                  }} {...props}>
-                    {children}
-                  </strong>
-                );
-              },
+              p: ({node, ...props}) => (
+                <p {...props} style={{
+                  marginBottom: '1em',
+                  textAlign: 'left',
+                  display: 'block',
+                  width: '100%',
+                  lineHeight: '1.5'
+                }} />
+              ),
               ul: ({node, ...props}) => (
-                <ul style={{
-                  marginLeft: '20px',
-                  listStyleType: 'disc',
-                  marginBottom: '15px'
-                }} {...props}/>
+                <ul {...props} style={{
+                  paddingLeft: '2em',
+                  marginBottom: '1em',
+                  textAlign: 'left'
+                }} />
               ),
-              ol: ({node, ...props}) => (
-                <ol style={{
-                  marginLeft: '20px',
-                  marginBottom: '15px'
-                }} {...props}/>
-              ),
-              li: ({node, children, ...props}) => {
-                // Get parent section type
-                const parentSectionType = getParentSectionType(node);
-                
-                return (
-                  <li style={{
-                    marginBottom: '8px',
-                    paddingLeft: '5px',
-                    ...(parentSectionType === 'leadership' || parentSectionType === 'skills' ? 
-                      { borderLeft: `2px solid ${parentSectionType === 'leadership' ? '#fca5a5' : '#93c5fd'}` } : {})
-                  }} {...props}>
-                    {children}
-                  </li>
-                );
-              },
+              li: ({node, ...props}) => (
+                <li {...props} style={{
+                  marginBottom: '0.5em',
+                  textAlign: 'left'
+                }} />
+              )
             }}
           >
             {feedback}
@@ -926,38 +807,58 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
         </div>
         
         {audioUrl && (
-          <div className="audio-playback">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h4 style={fontStyles.feedbackHeading}>Review Your Answer</h4>
-              <button
-                onClick={downloadAudio}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#FF9900', // Orange color that matches your theme
-                  padding: '8px',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.5rem',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  ':hover': {
-                    transform: 'scale(1.1)',
-                    boxShadow: '0 2px 5px rgba(0, 0, 0, 0.4)'
+          <div className="audio-playback" style={fontStyles.controlSection}>
+            <h3 style={fontStyles.heading}>Recording</h3>
+            
+            {/* Custom audio player wrapper */}
+            <div style={{ position: 'relative', marginBottom: '15px' }}>
+              <audio 
+                ref={audioRef} 
+                src={audioUrl} 
+                controls 
+                style={{ width: '100%' }}
+                onTimeUpdate={() => {
+                  // Update current time display when audio plays
+                  if (audioRef.current) {
+                    const current = audioRef.current.currentTime;
+                    const duration = audioRef.current.duration || 0;
+                    setAudioProgress({
+                      current: formatTime(current),
+                      duration: formatTime(duration)
+                    });
                   }
                 }}
-                aria-label="Download Recording"
-                title="Download Recording"
-              >
-                <span role="img" aria-hidden="true">
-                  💾
-                </span>
-              </button>
+                onLoadedMetadata={() => {
+                  // Get duration when audio loads
+                  if (audioRef.current) {
+                    setAudioProgress({
+                      current: '0:00',
+                      duration: formatTime(audioRef.current.duration || 0)
+                    });
+                  }
+                }}
+              />
+              
+              {/* Time display overlay */}
+              <div style={{
+                position: 'absolute',
+                bottom: '5px',
+                right: '10px',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                color: 'white',
+                padding: '2px 6px',
+                borderRadius: '3px',
+                fontSize: '0.8rem',
+                pointerEvents: 'none'
+              }}>
+                {audioProgress.current} / {audioProgress.duration}
+              </div>
             </div>
-            <audio controls src={audioUrl} style={{ width: '100%', marginTop: '10px' }}></audio>
+            
+            {/* Your existing download button */}
+            <button onClick={downloadAudio} style={buttonStyle}>
+              <span role="img" aria-hidden="true">💾</span>
+            </button>
           </div>
         )}
         
@@ -1078,164 +979,35 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
                         headerGradient = 'linear-gradient(to right, #fef9c3, #fef08a)';
                       }
                       
-                      return (
-                        <div style={{
-                          marginTop: '18px',
-                          marginBottom: '18px',
-                          border: `1px solid ${borderColor}`,
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
-                        }}>
-                          <h2 style={{
-                            background: headerGradient,
-                            padding: '10px 15px',
-                            margin: 0,
-                            color: '#1e293b', // Darker text for better contrast
-                            fontWeight: 'bold',
-                            fontSize: '1.2rem',
-                            borderBottom: `1px solid ${borderColor}`,
-                          }} {...props}/>
-                          <div style={{
-                            padding: '15px',
-                            backgroundColor: backgroundColor,
-                            lineHeight: '1.6',
-                          }} id={`section-${sectionType}`} className={`section-${sectionType}`}>
-                            {/* Content will be inserted here by ReactMarkdown */}
-                          </div>
-                        </div>
-                      );
+                      return <h2 {...props} style={{
+                        ...headerStyle,
+                        textAlign: 'left',
+                        display: 'block',
+                        width: '100%'
+                      }} />;
                     },
-                    // Special handling for overall score section
-                    p: ({node, children, ...props}) => {
-                      const text = children.toString();
-                      const parentElement = node.position ? 
-                        document.getElementById(`section-${getParentSectionType(node)}`) : null;
-                      
-                      // Special handling for score display
-                      if (text.includes('Score:') && parentElement?.id === 'section-score') {
-                        const score = text.match(/Score:\s*(\d+(?:\.\d+)?)\s*\/\s*10/i)?.[1] || '?';
-                        return (
-                          <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                            <div style={{ 
-                              fontSize: '36px', 
-                              fontWeight: 'bold', 
-                              color: getScoreColor(parseFloat(score)),
-                              margin: '5px 0'
-                            }}>
-                              {score}/10
-                            </div>
-                            <p style={{ 
-                              fontSize: '14px', 
-                              color: '#64748b',
-                              marginTop: '0'
-                            }}>
-                              {text.replace(/Score:\s*\d+(?:\.\d+)?\s*\/\s*10/i, '')}
-                            </p>
-                          </div>
-                        );
-                      }
-                      
-                      // Special styling for improvement suggestions
-                      if (parentElement?.id === 'section-improvements') {
-                        if (text.match(/^\d+\.\s+/)) {
-                          // This is a numbered item in improvements
-                          const number = text.match(/^(\d+)\.\s+/)[1];
-                          const content = text.replace(/^\d+\.\s+/, '');
-                          
-                          // Bold the first phrase (up to the first dash or period)
-                          let styledContent = content;
-                          const mainPoint = content.split(/\s+[–—-]\s+|\.\s+/)[0];
-                          if (mainPoint && mainPoint !== content) {
-                            styledContent = content.replace(
-                              mainPoint, 
-                              `<strong style="color:#4338ca">${mainPoint}</strong>`
-                            );
-                          }
-                          
-                          return (
-                            <p style={{
-                              marginBottom: '12px',
-                              paddingLeft: '10px',
-                              borderLeft: '3px solid #818cf8'
-                            }}>
-                              <span style={{
-                                display: 'inline-block',
-                                width: '24px',
-                                height: '24px',
-                                borderRadius: '50%',
-                                backgroundColor: '#4f46e5',
-                                color: 'white',
-                                textAlign: 'center',
-                                marginRight: '10px',
-                                fontWeight: 'bold',
-                                lineHeight: '24px'
-                              }}>{number}</span>
-                              <span dangerouslySetInnerHTML={{ __html: styledContent }} />
-                            </p>
-                          );
-                        }
-                      }
-                      
-                      // Default paragraph styling with appropriate spacing
-                      return (
-                        <p style={{
-                          marginBottom: '12px',
-                          lineHeight: '1.6'
-                        }} {...props}>{children}</p>
-                      );
-                    },
-                    strong: ({node, children, ...props}) => {
-                      // Get parent section type
-                      const parentSectionType = getParentSectionType(node);
-                      
-                      // Different styling based on section
-                      let color = '#1e293b'; // Default dark color
-                      
-                      if (parentSectionType === 'score') color = '#4338ca'; // Indigo
-                      if (parentSectionType === 'star') color = '#047857'; // Green
-                      if (parentSectionType === 'leadership') color = '#b91c1c'; // Red
-                      if (parentSectionType === 'skills') color = '#1d4ed8'; // Blue
-                      if (parentSectionType === 'improvements') color = '#7c3aed'; // Purple
-                      if (parentSectionType === 'summary') color = '#b45309'; // Amber
-                        
-                      return (
-                        <strong style={{
-                          fontWeight: 'bold', 
-                          color: color
-                        }} {...props}>
-                          {children}
-                        </strong>
-                      );
-                    },
+                    p: ({node, ...props}) => (
+                      <p {...props} style={{
+                        marginBottom: '1em',
+                        textAlign: 'left',
+                        display: 'block',
+                        width: '100%',
+                        lineHeight: '1.5'
+                      }} />
+                    ),
                     ul: ({node, ...props}) => (
-                      <ul style={{
-                        marginLeft: '20px',
-                        listStyleType: 'disc',
-                        marginBottom: '15px'
-                      }} {...props}/>
+                      <ul {...props} style={{
+                        paddingLeft: '2em',
+                        marginBottom: '1em',
+                        textAlign: 'left'
+                      }} />
                     ),
-                    ol: ({node, ...props}) => (
-                      <ol style={{
-                        marginLeft: '20px',
-                        marginBottom: '15px'
-                      }} {...props}/>
-                    ),
-                    li: ({node, children, ...props}) => {
-                      // Get parent section type
-                      const parentSectionType = getParentSectionType(node);
-                      
-                      return (
-                        <li style={{
-                          marginBottom: '8px',
-                          paddingLeft: '5px',
-                          ...(parentSectionType === 'leadership' || parentSectionType === 'skills' ? 
-                            { borderLeft: `2px solid ${parentSectionType === 'leadership' ? '#fca5a5' : '#93c5fd'}` } : {})
-                        }} {...props}>
-                          {children}
-                        </li>
-                      );
-                    },
+                    li: ({node, ...props}) => (
+                      <li {...props} style={{
+                        marginBottom: '0.5em',
+                        textAlign: 'left'
+                      }} />
+                    )
                   }}
                 >
                   {feedback}

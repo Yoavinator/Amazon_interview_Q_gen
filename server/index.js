@@ -53,21 +53,30 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
     }
     
     try {
+      // Fix: Use axios with FormData properly
+      const FormData = require('form-data');
+      
       const formData = new FormData();
       formData.append('file', fs.createReadStream(req.file.path));
       formData.append('model', 'whisper-1');
 
       console.log('Sending request to OpenAI API...');
-      const response = await fetch('https://amazon-interview-q-gen.onrender.com/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', 
+        formData, 
+        {
+          headers: {
+            ...formData.getHeaders(),
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+          }
+        }
+      );
+      
       console.log('Received response from OpenAI API');
 
       // Clean up the uploaded file
       fs.unlinkSync(req.file.path);
 
-      res.json(response.data);
+      res.json({ text: response.data.text });
     } catch (apiError) {
       console.error('OpenAI API error:', apiError.message);
       console.error('Response data:', apiError.response?.data);

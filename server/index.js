@@ -244,7 +244,7 @@ app.post('/api/feedback', async (req, res) => {
           { role: 'user', content: prompt }
         ],
         max_tokens: maxTokens,
-        temperature: 0.7,
+        temperature: 0.1,
       },
       {
         headers: {

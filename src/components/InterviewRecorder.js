@@ -82,11 +82,10 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       // Try different MIME types for better mobile compatibility
       let options = {};
       const mimeTypes = [
-        'audio/webm',
         'audio/webm;codecs=opus',
-        'audio/mp4',
-        'audio/ogg',
+        'audio/webm',
         'audio/ogg;codecs=opus',
+        'audio/mp4',
         ''  // empty string means browser default
       ];
       
@@ -308,7 +307,10 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       
       // Create a FormData object
       const formData = new FormData();
-      formData.append('audio', audioBlob);
+      // Create a File object from the Blob with a .webm extension
+      const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
+      formData.append('file', audioFile); // Changed from 'audio' to 'file'
+      formData.append('model', 'whisper-1');
       
       setTranscriptionStatus('Uploading audio to transcription service...');
       
@@ -594,158 +596,6 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
   }, []);
 
   // Enhanced styling for the feedback report
-  {feedback && (
-    <div className="ai-feedback" style={{
-      ...fontStyles.feedbackSection,
-      backgroundColor: '#f9f7f2', 
-      padding: '25px',
-      borderRadius: '8px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-      color: '#333',
-      fontFamily: 'Arial, sans-serif',
-      maxWidth: '800px',
-      margin: '0 auto',
-    }}>
-      <h2 style={{
-        fontFamily: '"Times New Roman", Times, serif',
-        fontSize: '1.8rem',
-        color: '#333',
-        textAlign: 'center',
-        marginBottom: '20px',
-        fontStyle: 'italic',
-        borderBottom: '2px solid #e0e0e0',
-        paddingBottom: '10px',
-      }}>Interview Feedback Report</h2>
-      
-      <div className="markdown-content">
-        {typeof ReactMarkdown !== 'undefined' ? (
-          <ReactMarkdown
-            components={{
-              h2: ({node, ...props}) => {
-                const text = props.children[0] || '';
-                
-                return <h2 {...props} style={{
-                  fontSize: '1.2rem',
-                  fontWeight: 'bold',
-                  marginTop: '1.5em',
-                  marginBottom: '0.8em',
-                  color: '#FF9900',
-                  borderBottom: '1px solid #4B5563',
-                  paddingBottom: '0.5em',
-                  textAlign: 'left',
-                  display: 'block',
-                  width: '100%'
-                }} />;
-              },
-              p: ({node, ...props}) => (
-                <p {...props} style={{
-                  marginBottom: '1em',
-                  textAlign: 'left',
-                  display: 'block',
-                  width: '100%',
-                  lineHeight: '1.5'
-                }} />
-              ),
-              ul: ({node, ...props}) => (
-                <ul {...props} style={{
-                  paddingLeft: '2em',
-                  marginBottom: '1em',
-                  textAlign: 'left'
-                }} />
-              ),
-              li: ({node, ...props}) => (
-                <li {...props} style={{
-                  marginBottom: '0.5em',
-                  textAlign: 'left'
-                }} />
-              )
-            }}
-          >
-            {feedback}
-          </ReactMarkdown>
-        ) : (
-          // Fallback without ReactMarkdown (simplified)
-          <div 
-            dangerouslySetInnerHTML={{ 
-              __html: feedback
-                .replace(/## (.*?)$/gm, '<h2 style="background:linear-gradient(to right, #e0e7ff, #c7d2fe);padding:10px 15px;margin:18px 0 0 0;color:#1e293b;font-weight:bold;font-size:1.2rem;border-radius:8px 8px 0 0;">$1</h2><div style="border:1px solid #cbd5e1;border-top:none;padding:15px;margin-bottom:18px;border-radius:0 0 8px 8px;background-color:#f0f4f8;line-height:1.6;">')
-                .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight:bold;color:#1e293b">$1</strong>')
-                .replace(/- (.*?)$/gm, '<ul style="margin-left:20px"><li style="margin-bottom:8px;line-height:1.6">$1</li></ul>')
-                .replace(/(\d+)\. (.*?)$/gm, '<ol style="margin-left:20px"><li style="margin-bottom:12px;line-height:1.6;padding-left:5px;">$1. $2</li></ol>')
-                .replace(/\n\n/g, '</div>\n\n')
-            }} 
-          />
-        )}
-      </div>
-      
-      {/* Download button for the feedback report */}
-      <div style={{textAlign: 'center', marginTop: '25px'}}>
-        <button
-          onClick={() => {
-            // Create a blob with the feedback content
-            const blob = new Blob([feedback], { type: 'text/markdown' });
-            const url = URL.createObjectURL(blob);
-            
-            // Create an invisible anchor element
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = `interview_feedback_${new Date().toISOString().slice(0,10)}.md`;
-            
-            // Add to body, click to trigger download, then remove
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            // Clean up the URL
-            URL.revokeObjectURL(url);
-          }}
-          style={{
-            ...buttonStyle, 
-            padding: '10px 18px',
-            background: 'linear-gradient(to right, #3b82f6, #1d4ed8)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-            ':hover': {
-              transform: 'translateY(-1px)',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.15)'
-            }
-          }}
-        >
-          📥 Download Feedback Report
-        </button>
-      </div>
-    </div>
-  )}
-
-  // Helper function to get parent section type
-  const getParentSectionType = (node) => {
-    if (!node || !node.position) return '';
-    
-    // Find the closest section div
-    const sections = document.querySelectorAll('[id^="section-"]');
-    for (const section of sections) {
-      // Simple position-based check
-      if (section.id) {
-        return section.id.replace('section-', '');
-      }
-    }
-    return '';
-  };
-
-  // Helper function to get color based on score
-  const getScoreColor = (score) => {
-    if (score >= 8) return '#16a34a'; // Green for high scores
-    if (score >= 6) return '#ca8a04'; // Yellow for medium scores
-    if (score >= 4) return '#ea580c'; // Orange for below average
-    return '#dc2626'; // Red for poor scores
-  };
-
   return (
     <div className="interview-recorder" id="single-interview-recorder">
       {!removePracticeHeader && (
@@ -963,16 +813,16 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
               fontStyle: 'italic',
               borderBottom: '2px solid #e0e0e0',
               paddingBottom: '10px',
-            }}>Interview Feedback Report</h2>
+            }}>
+              Interview Feedback Report
+            </h2>
             
             <div className="markdown-content">
               {typeof ReactMarkdown !== 'undefined' ? (
                 <ReactMarkdown
                   components={{
-                    h2: ({node, ...props}) => {
-                      const text = props.children[0] || '';
-                      
-                      return <h2 {...props} style={{
+                    h2: ({children, ...props}) => (
+                      <h2 {...props} style={{
                         fontSize: '1.2rem',
                         fontWeight: 'bold',
                         marginTop: '1.5em',
@@ -983,8 +833,10 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
                         textAlign: 'left',
                         display: 'block',
                         width: '100%'
-                      }} />;
-                    },
+                      }}>
+                        {children}
+                      </h2>
+                    ),
                     p: ({node, ...props}) => (
                       <p {...props} style={{
                         marginBottom: '1em',
@@ -1086,14 +938,16 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
           justifyContent: 'center',
           gap: '12px'
         }}>
-          <div style={{
-            width: '20px',
-            height: '20px',
-            borderRadius: '50%',
-            border: '3px solid #FF9900',
-            borderTopColor: 'transparent',
-            animation: 'spin 1s linear infinite'
-          }} />
+          <div 
+            className="spinner"
+            style={{
+              width: '20px',
+              height: '20px',
+              border: '3px solid #FF9900',
+              borderTopColor: 'transparent',
+              borderRadius: '50%'
+            }}
+          />
           <span>{transcriptionStatus || 'Transcribing audio...'}</span>
         </div>
       )}
@@ -1102,11 +956,3 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
 };
 
 export default InterviewRecorder;
-
-/* Add this CSS for the spinner animation */
-<style>
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-</style>

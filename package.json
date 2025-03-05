@@ -1,8 +1,9 @@
 {
-  "name": "random-question-app",
+  "name": "aiq",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://yoavinator.github.io/Amazon_interview_Q_gen",
+  "description": "AI-powered Interview Question Generator and Practice Tool",
+  "homepage": ".",
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",

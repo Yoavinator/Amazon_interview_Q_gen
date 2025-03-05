@@ -272,11 +272,6 @@ audio::-webkit-media-controls-play-button {
 }
 
 .spinner {
-  border: 3px solid rgba(255, 153, 0, 0.3);
-  border-radius: 50%;
-  border-top: 3px solid #FF9900;
-  width: 20px;
-  height: 20px;
   animation: spin 1s linear infinite;
 }
 

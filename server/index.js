@@ -1,4 +1,11 @@
 require('dotenv').config();
+
+// Check for required environment variables
+if (!process.env.OPENAI_API_KEY) {
+  console.error('ERROR: OPENAI_API_KEY environment variable is not set!');
+  process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -40,7 +47,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Endpoint for transcription
-app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
+app.post('/api/transcribe', upload.single('file'), async (req, res) => {
   console.log('Transcribe request received');
   try {
     if (!req.file) {

@@ -309,8 +309,7 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       const formData = new FormData();
       // Create a File object from the Blob with a .webm extension
       const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
-      formData.append('file', audioFile); // Changed from 'audio' to 'file'
-      formData.append('model', 'whisper-1');
+      formData.append('file', audioFile);
       
       setTranscriptionStatus('Uploading audio to transcription service...');
       
@@ -320,12 +319,9 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       
       console.log('Starting transcription request');
       
-      // Send the request with timeout
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      // Send the request to our server endpoint instead of OpenAI directly
+      const response = await fetch('https://amazon-interview-q-gen.onrender.com/api/transcribe', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`
-        },
         body: formData,
         signal: controller.signal
       })
@@ -360,7 +356,7 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       } else if (err.message.includes('NetworkError')) {
         setError('Network error during transcription. Please check your internet connection and try again.');
       } else if (err.message.includes('401')) {
-        setError('Authentication error with the transcription service. API key might be invalid.');
+        setError('Authentication error with the transcription service. Please contact support.');
       } else if (err.message.includes('429')) {
         setError('Transcription service rate limit exceeded. Please try again in a few minutes.');
       } else {

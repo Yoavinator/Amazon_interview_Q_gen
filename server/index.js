@@ -162,22 +162,28 @@ app.post('/api/feedback', async (req, res) => {
 
 Use the following structured format for your evaluation:  
 
-## 📊 Overall Score  
-**Score:** X/10  
+## �� Overall Score  
+**Final Score:** X/100  
 **Question Category:** [Leadership Principle or PM skill being tested]  
 **Response Summary:** [2-10 word summary of candidate's performance]  
 
 ---
 
 ## 🔹 Scoring Guidelines  
-Each section should be scored on a **1-10 scale**, where:  
-- **9-10** → Outstanding: Exceptional clarity, depth, and impact.  
-- **7-8** → Strong: Well-structured with some room for refinement.  
-- **5-6** → Adequate: Meets basic expectations but lacks depth or clarity.  
-- **3-4** → Weak: Major gaps in explanation, structure, or impact.  
-- **1-2** → Poor: Did not address key elements of the question.  
+Each section should be scored on a **0-100 scale**, following these criteria:  
 
-The **Overall Score** is an **average** of the STAR Method, Leadership Principles, and PM Skills scores.  
+- **90-100 (Outstanding)** → Exceptional clarity, depth, and impact. The answer is highly structured, directly relevant, well-balanced across STAR, and provides quantified results with strong business relevance. No major improvements needed.  
+- **80-89 (Strong)** → Well-structured answer with clear impact, but minor areas for refinement. Might lack some depth in one section, or could be slightly more concise or structured.  
+- **70-79 (Good)** → Meets expectations but lacks depth or clarity in key areas. Some STAR sections might be underdeveloped, or the impact might not be well-quantified. Improvement needed in structure or detail.  
+- **60-69 (Adequate)** → Answer is understandable but has noticeable gaps in explanation, structure, or impact. Might lack clear ownership, have vague actions, or fail to quantify results effectively.  
+- **50-59 (Weak)** → Major issues in clarity, structure, or depth. The answer may be disorganized, missing key details, or fail to provide a meaningful impact. Needs significant improvement.  
+- **0-49 (Poor)** → Answer does not address key elements of the question. It may be off-topic, lack any real structure, or fail to show relevant leadership principles or PM skills.  
+
+**Final Overall Score Calculation:**  
+The overall score is the **weighted average** of:  
+- **STAR Method Score (50%)** – Action section weighted at **60%** of this score.  
+- **Leadership Score (25%)**  
+- **PM Skills Score (25%)**  
 
 ---
 
@@ -212,81 +218,85 @@ The **Overall Score** is an **average** of the STAR Method, Leadership Principle
 
 ## 📝 Feedback & Rating  
 
-### Did the Answer Fully Address the Question? (Score: X/10)  
+### Did the Answer Fully Address the Question? (Score: X/100)  
+**Guidelines for evaluation:**  
 - **Was the response directly relevant to the question asked?** [Yes/No]  
 - **If not, what was missing or off-topic?** [Brief explanation]  
 
-### Situation & Task (Score: X/10)  
-- **Clarity:** [Was the situation well explained? Any missing details?]  
-- **Conciseness:** [Was it too long or too short? Any unnecessary details? Specify.]  
-- **Role Definition:** [Did they clearly establish their responsibility?]  
+🔹 **Final Response:** [Only include necessary feedback based on the response]  
 
-### Action (60% of Answer) (Score: X/10)  
-- **Detail Level:** [Was the explanation deep enough or too vague?]  
-- **Execution Clarity:** [Did they focus on what they did personally vs. the team?]  
-- **Focus Balance:** [Did they allocate at least 60% to Action? If not, what was over/underemphasized?]  
+### Situation & Task (Score: X/100)  
+**Guidelines for evaluation:**  
+- **Clarity:** Was the situation well explained, with enough relevant context?  
+- **Conciseness:** Was the answer overly detailed or missing key information?  
+- **Role Definition:** Did the candidate clearly define their personal role in the story?  
 
-### Result (Score: X/10)  
-- **Impact Measurement:** [Did they quantify results effectively?]  
-- **Depth of Outcome:** [Was the impact significant? Did they highlight long-term effects?]  
-- **Business Relevance:** [Did they tie the result back to business goals?]  
+🔹 **Final Response:** [Only include necessary feedback based on the response]  
+
+### Action (60% of Answer) (Score: X/100)  
+**Guidelines for evaluation:**  
+- **Detail Level:** Did the candidate provide enough detail about what they did?  
+- **Execution Clarity:** Did they clearly explain their personal contributions vs. team efforts?  
+- **Focus Balance:** Did they allocate at least 60% of their response to Action?  
+
+🔹 **Final Response:** [Only include necessary feedback based on the response]  
+
+### Result (Score: X/100)  
+**Guidelines for evaluation:**  
+- **Impact Measurement:** Did they quantify results effectively?  
+- **Depth of Outcome:** Was the impact significant? Did they highlight long-term effects?  
+- **Business Relevance:** Did they tie the result back to business goals?  
+
+🔹 **Final Response:** [Only include necessary feedback based on the response]  
 
 ---
 
 ## 🏆 Leadership Principles Demonstrated  
 
-[List all relevant Leadership Principles demonstrated in the answer]  
+**Guidelines for evaluation:**  
+- **Identify relevant Leadership Principles the candidate demonstrated.**  
 
-- **[Principle 1]** – [Score X/10] – [Brief assessment]  
-- **[Principle 2]** – [Score X/10] – [Brief assessment]  
-- **[Principle 3]** – [Score X/10] – [Brief assessment]  
-
-🔹 **Leadership Average Score:** X/10  
+🔹 **Final Response:** **Leadership Score:** X/100  
+[List the relevant principles and provide a brief assessment]  
 
 ---
 
 ## 🧠 PM-Specific Skills Demonstrated  
 
-[List all relevant PM skills demonstrated]  
+**Guidelines for evaluation:**  
+- **Identify relevant PM skills demonstrated.**  
 
-- **[Skill 1]** – [Score X/10] – [Brief assessment]  
-- **[Skill 2]** – [Score X/10] – [Brief assessment]  
-- **[Skill 3]** – [Score X/10] – [Brief assessment]  
-
-🔹 **PM Skills Average Score:** X/10  
+🔹 **Final Response:** **PM Skills Score:** X/100  
+[List the relevant skills and provide a brief assessment]  
 
 ---
 
 ## 🚀 Improvement Suggestions  
 
-[Only include relevant suggestions—**do not list all categories, only those needing improvement**]  
+[Only include necessary suggestions—**do not list all categories, only those needing improvement**]  
 
 ### Fluency & Clarity  
-- **Was the answer clear and structured?** [Yes/No]  
-- **Any sections that were hard to follow?** [If so, specify]  
+[Provide feedback if the answer lacked clarity or structure.]  
 
 ### Time Balance  
-- **Was the answer well-balanced across STAR?** [Yes/No]  
-- **Did the candidate allocate at least 60% to Action?** [Yes/No]  
+[Provide feedback if the response was not well-balanced across STAR or if Action was not sufficiently emphasized.]  
 
 ### Concise Storytelling  
-- **Were there unnecessary details?** [Yes/No]  
-- **Where could they trim content?** [Specify]  
+[Provide feedback if unnecessary details were included and where trimming would help.]  
 
 ### Depth of Impact  
-- **Was the result impactful enough?** [Yes/No]  
-- **How could they strengthen it?** [Concrete suggestions]  
+[Provide feedback if the result was not impactful enough or if more depth was needed.]  
 
 ---
 
 ## ⚡ Summary & Key Takeaways  
 
-- **STAR Average Score:** X/10  
-- **Leadership Average Score:** X/10  
-- **PM Skills Average Score:** X/10  
-- **Final Overall Score:** **X/10**  
+- **STAR Average Score:** X/100  
+- **Leadership Score:** X/100  
+- **PM Skills Score:** X/100  
+- **Final Overall Score:** **X/100**  
 
-[Brief summary of strengths and **only 2-3 actionable improvements**]  
+🔹 **Final Response:** [Provide a concise summary of strengths and **only 2-3 actionable improvements**.]  
 
 Be **direct, specific, and actionable** in your feedback. Do not be overly positive if the response does not warrant it.`;
     

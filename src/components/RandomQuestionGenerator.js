@@ -35,7 +35,11 @@ const RandomQuestionGenerator = () => {
   // Google Sheets configuration - using environment variable
   const sheetId = '1O2sJ3uJpNK9t44KPElZWPi_OJ16ArWKbpq2DHJQ8OdE';
   const range = 'Sheet1';
-  const apiKey = process.env.REACT_APP_GOOGLE_SHEETS_API_KEY;
+  // Try to get API key from different possible sources
+  const apiKey = process.env.REACT_APP_GOOGLE_SHEETS_API_KEY || window._env_?.REACT_APP_GOOGLE_SHEETS_API_KEY;
+
+  // Log for debugging (remove in production)
+  console.log('API Key status:', apiKey ? 'Present' : 'Missing');
 
   const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
   const sheet2Url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet2?key=${apiKey}`;

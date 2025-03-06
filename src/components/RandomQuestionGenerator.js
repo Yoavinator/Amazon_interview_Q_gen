@@ -35,11 +35,18 @@ const RandomQuestionGenerator = () => {
   // Google Sheets configuration - using environment variable
   const sheetId = '1O2sJ3uJpNK9t44KPElZWPi_OJ16ArWKbpq2DHJQ8OdE';
   const range = 'Sheet1';
-  // Try to get API key from different possible sources
-  const apiKey = process.env.REACT_APP_GOOGLE_SHEETS_API_KEY || window._env_?.REACT_APP_GOOGLE_SHEETS_API_KEY;
+  
+  // Try to get API key from multiple possible sources
+  const apiKey = process.env.REACT_APP_GOOGLE_SHEETS_API_KEY || 
+                 window._env_?.REACT_APP_GOOGLE_SHEETS_API_KEY || 
+                 window.REACT_APP_GOOGLE_SHEETS_API_KEY;
 
-  // Log for debugging (remove in production)
-  console.log('API Key status:', apiKey ? 'Present' : 'Missing');
+  // More detailed logging for debugging
+  console.log('Environment sources available:', {
+    processEnv: process.env.REACT_APP_GOOGLE_SHEETS_API_KEY ? 'Yes' : 'No',
+    windowEnv: window._env_?.REACT_APP_GOOGLE_SHEETS_API_KEY ? 'Yes' : 'No',
+    windowDirect: window.REACT_APP_GOOGLE_SHEETS_API_KEY ? 'Yes' : 'No'
+  });
 
   const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
   const sheet2Url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet2?key=${apiKey}`;
@@ -107,14 +114,37 @@ const RandomQuestionGenerator = () => {
       try {
         setIsLoading(true);
         
+        // Debug log before making requests
+        console.log('Making API requests with:', {
+          apiKey: apiKey ? 'Present' : 'Missing',
+          apiUrl,
+          sheet2Url
+        });
+        
         // Fetch both sheets in parallel
         const [questionsResponse, keyPointsResponse] = await Promise.all([
-          fetch(apiUrl),
-          fetch(sheet2Url)
+          fetch(apiUrl).then(async response => {
+            // Debug log for Sheet1 response
+            console.log('Sheet1 Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              headers: Object.fromEntries(response.headers.entries())
+            });
+            return response;
+          }),
+          fetch(sheet2Url).then(async response => {
+            // Debug log for Sheet2 response
+            console.log('Sheet2 Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              headers: Object.fromEntries(response.headers.entries())
+            });
+            return response;
+          })
         ]);
 
         if (!questionsResponse.ok || !keyPointsResponse.ok) {
-          throw new Error('Failed to fetch data from Google Sheets');
+          throw new Error(`Failed to fetch data from Google Sheets: Sheet1 status ${questionsResponse.status}, Sheet2 status ${keyPointsResponse.status}`);
         }
 
         const [questionsData, keyPointsData] = await Promise.all([

@@ -139,9 +139,8 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       // Clear chunks before starting
       chunksRef.current = [];
       
-      // Start recording with a short slice interval to ensure data is captured
-      // This helps on some mobile browsers
-      mediaRecorderRef.current.start(1000); // Get data every second
+      // Start recording with smaller chunks for better handling
+      mediaRecorderRef.current.start(1000); // Get data every second for more frequent updates
       setIsRecording(true);
       
       // Start timer
@@ -229,6 +228,7 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
           blobType = mediaRecorderRef.current.mimeType;
         }
         
+        // Combine all chunks into a single blob
         const blob = new Blob(chunksRef.current, { type: blobType });
         console.log(`Created blob of type ${blobType}, size: ${blob.size} bytes`);
         
@@ -259,7 +259,28 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
     timerRef.current = setInterval(() => {
       const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
       setRecordingTime(elapsedTime);
+      
+      // Auto-stop at 5 minutes (300 seconds)
+      if (elapsedTime >= 300) {
+        setError('Maximum recording time of 5 minutes reached');
+        stopRecording();
+      }
     }, 1000);
+  };
+
+  // Add a function to check if we're approaching the limit
+  const getTimerColor = () => {
+    if (recordingTime >= 270) { // Last 30 seconds
+      return '#ff4444'; // Red
+    } else if (recordingTime >= 240) { // Last minute
+      return '#ffbb33'; // Yellow
+    }
+    return '#FF9900'; // Default Amazon orange
+  };
+
+  const getTimeRemaining = () => {
+    const remaining = 300 - recordingTime; // 5 minutes in seconds
+    return formatTime(remaining);
   };
 
   // Add a useEffect to check device compatibility
@@ -313,22 +334,51 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       
       setTranscriptionStatus('Uploading audio to transcription service...');
       
-      // Set up timeout for the fetch request
+      // Set up timeout for the fetch request with a longer duration
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.log('Request timed out, attempting to process partial response');
+      }, 180000); // 3 minute timeout
       
       console.log('Starting transcription request');
       
-      // Send the request to our server endpoint instead of OpenAI directly
-      const response = await fetch('https://amazon-interview-q-gen.onrender.com/api/transcribe', {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal
-      })
-      .then(res => {
-        clearTimeout(timeoutId); // Clear timeout on successful response
-        return res;
-      });
+      // Send the request with retry logic
+      let retries = 3;
+      let response;
+      
+      while (retries > 0) {
+        try {
+          response = await fetch('https://amazon-interview-q-gen.onrender.com/api/transcribe', {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal
+          });
+          
+          if (response.ok) {
+            break; // Success, exit retry loop
+          }
+          
+          retries--;
+          if (retries > 0) {
+            console.log(`Retrying transcription request, ${retries} attempts remaining`);
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+          }
+        } catch (fetchError) {
+          if (fetchError.name === 'AbortError') {
+            throw fetchError; // Don't retry timeouts
+          }
+          retries--;
+          if (retries > 0) {
+            console.log(`Fetch error, retrying. ${retries} attempts remaining`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            throw fetchError;
+          }
+        }
+      }
+      
+      clearTimeout(timeoutId); // Clear timeout on successful response
       
       // Check for HTTP errors
       if (!response.ok) {
@@ -352,7 +402,7 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
       
       // More user-friendly error messages
       if (err.name === 'AbortError') {
-        setError('Transcription timed out. The audio might be too long or there could be network issues.');
+        setError('Transcription timed out. Please try recording in smaller segments.');
       } else if (err.message.includes('NetworkError')) {
         setError('Network error during transcription. Please check your internet connection and try again.');
       } else if (err.message.includes('401')) {
@@ -630,9 +680,24 @@ const InterviewRecorder = ({ removePracticeHeader = false }) => {
                   />
                 ))}
               </div>
-              <div className="timer" style={fontStyles.bodyText}>
-                {formatTime(recordingTime)}
+              <div className="timer" style={{
+                ...fontStyles.bodyText,
+                color: getTimerColor(),
+                transition: 'color 0.3s ease'
+              }}>
+                {isRecording ? `Time remaining: ${getTimeRemaining()}` : formatTime(recordingTime)}
               </div>
+              {recordingTime >= 240 && (
+                <div style={{
+                  color: getTimerColor(),
+                  fontSize: '0.8rem',
+                  marginTop: '4px',
+                  transition: 'color 0.3s ease'
+                }}>
+                  {recordingTime >= 270 ? 'Recording will stop in ' + (300 - recordingTime) + ' seconds'
+                                      : 'Less than 1 minute remaining'}
+                </div>
+              )}
             </div>
           )}
           

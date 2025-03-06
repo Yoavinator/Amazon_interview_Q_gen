@@ -119,7 +119,7 @@ app.post('/api/feedback', async (req, res) => {
   console.log('Feedback request received');
   
   try {
-    const { transcription, question, feedbackType } = req.body;
+    const { transcription, question } = req.body;
     
     if (!transcription) {
       console.log('No transcription provided');
@@ -141,7 +141,6 @@ app.post('/api/feedback', async (req, res) => {
     }
     
     console.log('Processing feedback for question:', question);
-    console.log('Feedback type:', feedbackType || 'standard');
     
     // Check if OpenAI API key is set
     if (!process.env.OPENAI_API_KEY) {
@@ -155,83 +154,134 @@ app.post('/api/feedback', async (req, res) => {
       });
     }
     
-    // Update the prompt to generate the structured report format
-    let prompt;
-    
-    if (feedbackType === 'amazon_pm') {
-      prompt = `As an Amazon interview coach specializing in Product Management roles, evaluate the following candidate's answer to this question: "${question}".
-      
-      Candidate's answer: "${transcription}"
-      
-      Please return a structured report in exactly this format (use proper markdown):
+    // Structured prompt for Amazon PM feedback
+    const prompt = `As an Amazon interview coach specializing in Product Management roles, evaluate the following candidate's answer to this question:  
 
-      ## 📊 Overall Score
-      **Score:** X/10
-      **Question Category:** [Leadership Principle or PM skill the question is testing]
-      **Response Summary:** [2-3 word summary of candidate's performance]
+**Question:** "${question}"  
+**Candidate's Answer:** "${transcription}"  
 
-      ## 📌 STAR Method Analysis
-      **Situation:** [Did the candidate clearly establish context? Provide brief analysis]
-      **Task:** [Was their role/responsibility clearly articulated? Provide brief analysis]
-      **Action:** [Did they explain their specific actions with enough detail? Provide brief analysis]
-      **Result:** [Did they quantify impact and outcomes? Provide brief analysis]
+Use the following structured format for your evaluation:  
 
-      ## 🏆 Amazon Leadership Principles Assessment
-      [Evaluate how well the answer demonstrated relevant Amazon Leadership Principles]
-      - **Customer Obsession:** [Assessment]
-      - **Ownership:** [Assessment]
-      - **Invent and Simplify:** [Assessment]
-      - Include only the principles that were relevant to this answer
+## 📊 Overall Score  
+**Score:** X/10  
+**Question Category:** [Leadership Principle or PM skill being tested]  
+**Response Summary:** [2-10 word summary of candidate's performance]  
 
-      ## 🧠 PM-Specific Skills Assessment
-      - **Product Sense:** [Assessment]
-      - **Strategic Thinking:** [Assessment]
-      - **Data-Driven Decision Making:** [Assessment]
-      - **Cross-Functional Collaboration:** [Assessment]
+### 📌 STAR Method Analysis  
 
-      ## 🚀 Improvement Suggestions
-      [Provide 3-4 specific ways the candidate could strengthen their answer]
-      1. [First suggestion]
-      2. [Second suggestion]
-      3. [Third suggestion]
+## 📝 Story
 
-      ## ⚡ Summary & Key Takeaways
-      [Brief summary of the candidate's performance, highlighting strengths and listing 2-3 actionable improvements]
-      
-      Be direct, specific, and actionable in your feedback. Do not be overly positive if the response does not warrant it.`;
-    } else {
-      // Standard prompt for other interview types (you can also update this if desired)
-      prompt = `As an Amazon interview coach, evaluate the following candidate's answer to this question: "${question}".
-      
-      Candidate's answer: "${transcription}"
-      
-      Please return a structured report in exactly this format (use proper markdown):
+### **Situation & Task**  
+- **Context:** [Brief description of the situation]  
+- **Goal:** [What the candidate needed to achieve]  
+- **Challenges:** [Any obstacles they faced]  
+- **Candidate's Role:** [What they were responsible for]  
 
-      ## 📊 Overall Score
-      **Score:** X/10
-      **Question Category:** [Category]
-      **Response Summary:** [2-3 word summary]
+### **Action**  
+- **Approach Taken:**  
+  - [Bullet 1]  
+  - [Bullet 2]  
+  - [Bullet 3]  
+- **Decisions Made:**  
+  - [Bullet 1]  
+  - [Bullet 2]  
 
-      ## 📌 Answer Structure Analysis
-      [Analysis of the answer structure and completeness]
+### **Result**  
+- **Outcome:**  
+  - [Bullet 1]  
+  - [Bullet 2]  
+- **Impact Measurement:**  
+  - [Bullet 1] (e.g., revenue increase, engagement boost)  
+  - [Bullet 2]  
 
-      ## 🚀 Improvement Suggestions
-      [Provide 3-4 specific ways the candidate could strengthen their answer]
-      1. [First suggestion]
-      2. [Second suggestion]
-      3. [Third suggestion]
+---
 
-      ## ⚡ Summary & Key Takeaways
-      [Brief summary with actionable improvements]
-      
-      Be direct, specific, and actionable in your feedback.`;
-    }
+## 📝 Feedback & Rating  
+
+### **Did the Answer Fully Address the Question? (Score: X/10)**  
+- **Was the response directly relevant to the question asked?** [Yes/No]  
+- **If not, what was missing or off-topic?** [Brief explanation]  
+- **Did the candidate clearly understand the intent of the question?** [Yes/No]  
+- **Suggestions to improve alignment:**  
+  - [Bullet 1]  
+  - [Bullet 2]  
+
+### **Situation & Task (Score: X/10)**  
+- **Clarity:** [Was the situation well explained? Any missing details?]  
+- **Conciseness:** [Was it too long or too short? Any unnecessary details? specify the unnecessary details]  
+- **Role Definition:** [Did they clearly establish their responsibility?]  
+
+### **Action (60% of Answer) (Score: X/10)**  
+- **Detail Level:** [Was the explanation deep enough or too vague?]  
+- **Execution Clarity:** [Did they focus on what they did personally vs. the team?]  
+- **Focus Balance:** [Did they allocate at least 60% to Action? If not, what was over/underemphasized?]  
+
+### **Result (Score: X/10)**  
+- **Impact Measurement:** [Did they quantify results effectively?]  
+- **Depth of Outcome:** [Was the impact significant? Did they highlight long-term effects?]  
+- **Business Relevance:** [Did they tie the result back to business goals?]  
+
+
+## 🏆 Leadership Principles Demonstrated  
+[List all relevant Leadership Principles demonstrated in the answer]  
+
+**Full List of Amazon Leadership Principles (for reference):**  
+1. **Customer Obsession** – Leaders start with the customer and work backward.  
+2. **Ownership** – Leaders act on behalf of the company, not just their team.  
+3. **Invent and Simplify** – Leaders innovate and find ways to simplify.  
+4. **Are Right, A Lot** – Leaders have strong judgment and make good decisions.  
+5. **Learn and Be Curious** – Leaders continuously seek to improve themselves.  
+6. **Hire and Develop the Best** – Leaders coach and develop talent.  
+7. **Insist on the Highest Standards** – Leaders continually raise the bar.  
+8. **Think Big** – Leaders create and communicate bold directions.  
+9. **Bias for Action** – Leaders make decisions quickly and move with urgency.  
+10. **Frugality** – Leaders accomplish more with less.  
+11. **Earn Trust** – Leaders are honest, humble, and self-critical.  
+12. **Dive Deep** – Leaders operate at all levels and stay connected to details.  
+13. **Have Backbone; Disagree and Commit** – Leaders respectfully challenge decisions but commit once made.  
+14. **Deliver Results** – Leaders focus on key inputs and deliver with quality.  
+15. **Strive to be Earth's Best Employer** – Leaders create a safe and inclusive workplace.  
+16. **Success and Scale Bring Broad Responsibility** – Leaders act with long-term impact in mind.  
+
+- **Relevant Principles in this answer:**  
+  - **[Principle 1]** – [Brief assessment]  
+  - **[Principle 2]** – [Brief assessment]  
+  - **[Principle 3]** – [Brief assessment]  
+
+## 🧠 PM-Specific Skills Demonstrated  
+[List all relevant PM skills demonstrated]  
+- **[Skill 1]** – [Brief assessment]  
+- **[Skill 2]** – [Brief assessment]  
+- **[Skill 3]** – [Brief assessment]  
+
+## 🚀 Improvement Suggestions  
+### **Fluency & Clarity**  
+- **Was the answer clear and structured?** [Yes/No]  
+- **Any sections that were hard to follow?** [If so, specify]  
+
+### **Time Balance**  
+- **Was the answer well-balanced across STAR?** [Yes/No]  
+- **Did the candidate allocate at least 60% to Action?** [Yes/No]  
+- **Did they spend too much/too little time on any part?** [Specify]  
+
+### **Concise Storytelling**  
+- **Were there unnecessary details?** [Yes/No]  
+- **Where could they trim content?** [Specify]  
+
+### **Depth of Impact**  
+- **Was the result impactful enough?** [Yes/No]  
+- **How could they strengthen it?** [Concrete suggestions]  
+
+## ⚡ Summary & Key Takeaways  
+[Brief summary of strengths and 2-3 actionable improvements]  
+
+Be **direct, specific, and actionable** in your feedback. Do not be overly positive if the response does not warrant it.`;
     
     // Calculate token estimate for GPT-4 (approximate)
     const inputTokenEstimate = (prompt.length / 4); // Very rough estimate
     
     // Set max tokens based on model and input length
-    const model = "gpt-4"; // Updated to GPT-4
+    const model = "gpt-4"; // Using GPT-4 for best feedback quality
     const maxTokens = Math.min(4000, 8192 - Math.ceil(inputTokenEstimate));
     
     console.log(`Using model: ${model}, estimated input tokens: ~${Math.ceil(inputTokenEstimate)}, max output tokens: ${maxTokens}`);
@@ -244,14 +294,12 @@ app.post('/api/feedback', async (req, res) => {
         messages: [
           { 
             role: 'system', 
-            content: feedbackType === 'amazon_pm' 
-              ? 'You are an expert Amazon interview coach specializing in Product Management roles. You have extensive knowledge of the STAR method and Amazon Leadership Principles.'
-              : 'You are an Amazon interview coach helping candidates improve their interview skills.'
+            content: 'You are an expert Amazon interview coach specializing in Product Management roles. You have extensive knowledge of the STAR method and Amazon Leadership Principles.'
           },
           { role: 'user', content: prompt }
         ],
         max_tokens: maxTokens,
-        temperature: 0.1,
+        temperature: 0.2,
       },
       {
         headers: {
